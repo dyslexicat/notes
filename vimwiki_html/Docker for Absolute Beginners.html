@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>Docker for Absolute Beginners</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="WHY DO YOU NEED DOCKER"><h1 id="WHY DO YOU NEED DOCKER" class="header"><a href="#WHY DO YOU NEED DOCKER">WHY DO YOU NEED DOCKER</a></h1></div>
+<ul>
+<li>
+Dependency management
+
+<li>
+OS versioning for different components of an app/service
+
+<li>
+Long set up time for new engineers
+
+<li>
+Compatibility/Dependency
+
+<li>
+Different dev/test/prod environments
+
+<li>
+Each component separated into a container with its own libs/dependencies
+
+</ul>
+
+<div id="WHAT ARE CONTAINERS"><h1 id="WHAT ARE CONTAINERS" class="header"><a href="#WHAT ARE CONTAINERS">WHAT ARE CONTAINERS</a></h1></div>
+<ul>
+<li>
+They are completely separated environments
+
+<li>
+Own process, networks, mounts
+
+<li>
+They share the same <em>OS kernel</em>
+
+<li>
+Containers are not a new idea
+
+<li>
+Docker uses <em>LXC containers</em>
+
+<li>
+High-level tool with powerful functionalities for end-users
+
+<li>
+Main purpose:
+
+<ul>
+<li>
+Package, and containerize applications, and to ship and run them anytime anywhere as many times as you want
+
+</ul>
+</ul>
+
+<div id="CONTAINERS VS VIRTUAL MACHINES"><h1 id="CONTAINERS VS VIRTUAL MACHINES" class="header"><a href="#CONTAINERS VS VIRTUAL MACHINES">CONTAINERS VS VIRTUAL MACHINES</a></h1></div>
+<ul>
+<li>
+With VMs we have a <em>hypervisor</em> and then virtual machines with their own OS
+
+<li>
+With containers we have the same OS kernel on top of the hardware, and Docker shares this OS kernel with different containers
+
+<li>
+Containers:
+
+<ul>
+<li>
+Lightweight in size
+
+<li>
+Resource utilization is less than VMs
+
+<li>
+Fast boot up times
+
+</ul>
+<li>
+It is not an either or situation
+
+<li>
+With large docker containers we have virtual Docker hosts to separate containers from each other
+
+</ul>
+
+<div id="BASIC DOCKER COMMANDS"><h1 id="BASIC DOCKER COMMANDS" class="header"><a href="#BASIC DOCKER COMMANDS">BASIC DOCKER COMMANDS</a></h1></div>
+<p>
+<em>run</em> - starts a container
+ex. docker run nginx
+</p>
+
+<p>
+if the image doesn't exist <em>locally</em> it pulls from docker hub for the first time
+</p>
+
+<p>
+<em>ps</em> - list containers
+ex. docker ps [-a]
+-a also show stopped containers
+</p>
+
+<p>
+<em>stop</em> - stop a container
+<em>rm</em> - remove a container
+<em>images</em> - list images
+<em>rmi</em> - remove images
+you need to ensure no running containers exist depending on this image
+</p>
+
+<p>
+<em>pull</em> - download an image
+</p>
+
+<p>
+Containers are meant to run a specific task or process such as to host an instance of a web server or app server or a DB or simply to carry some kind of computation or analysis task
+</p>
+
+<p>
+Once the task is over the container <em>EXITS</em>. It lives as long as the process inside of it.
+</p>
+
+<p>
+They are NOT full VMs
+</p>
+
+<p>
+append a command
+"docker run ubuntu sleep 5" is <em>POSSIBLE</em>
+</p>
+
+<p>
+<em>exec</em> - execute a command
+"docker exec &lt;CONTAINER_NAME&gt; cat /etc/hosts"
+</p>
+
+<p>
+run - attach and detach
+default mode is <em>attach</em>
+use "-d" flag to run in the detached mode
+"docker attach &lt;NAME_OR_ID&gt;"
+</p>
+
+<p>
+! You can just use the first few characters of the container ID
+</p>
+
+<div id="DOCKER RUN IN-DEPTH"><h1 id="DOCKER RUN IN-DEPTH" class="header"><a href="#DOCKER RUN IN-DEPTH">DOCKER RUN IN-DEPTH</a></h1></div>
+<p>
+docker run name:tag
+if no tag is specified docker uses <em>"latest"</em> as the tag
+</p>
+
+<p>
+-i maps the STDIN of your host to the container / <em>interactive mode</em>
+-t stands for pseudo-terminal
+</p>
+
+<div id="DOCKER RUN IN-DEPTH-PORT MAPPING"><h2 id="PORT MAPPING" class="header"><a href="#DOCKER RUN IN-DEPTH-PORT MAPPING">PORT MAPPING</a></h2></div>
+<p>
+Every docker gets an IP
+But we use the IP of the <em>host machine</em> since the container IP is only accessible internally
+-p HOST:CONTAINER -&gt; maps the relevant container port to the host machine
+</p>
+
+<div id="DOCKER RUN IN-DEPTH-VOLUME MAPPING"><h2 id="VOLUME MAPPING" class="header"><a href="#DOCKER RUN IN-DEPTH-VOLUME MAPPING">VOLUME MAPPING</a></h2></div>
+<p>
+-v HOST:CONTAINER -&gt; maps the relevant container volume to the host machine
+</p>
+
+<div id="DOCKER RUN IN-DEPTH-INSPECT CONTAINER"><h2 id="INSPECT CONTAINER" class="header"><a href="#DOCKER RUN IN-DEPTH-INSPECT CONTAINER">INSPECT CONTAINER</a></h2></div>
+<p>
+"docker inspect CONTAINER_NAME" -&gt; gives more detailed info about a container in JSON format
+</p>
+
+<div id="DOCKER RUN IN-DEPTH-CONTAINER LOGS"><h2 id="CONTAINER LOGS" class="header"><a href="#DOCKER RUN IN-DEPTH-CONTAINER LOGS">CONTAINER LOGS</a></h2></div>
+<p>
+"docker logs CONTAINER_NAME" -&gt; inspect logs of a container
+</p>
+
+<div id="CREATING YOUR OWN IMAGE"><h1 id="CREATING YOUR OWN IMAGE" class="header"><a href="#CREATING YOUR OWN IMAGE">CREATING YOUR OWN IMAGE</a></h1></div>
+<ul>
+<li>
+Write down all the steps
+
+<li>
+Create a <em>Dockerfile</em> with the instructions in it
+
+<li>
+-t is used for both naming and tagging
+
+<li>
+"docker build -t &lt;NAME:TAG&gt; ."
+
+<li>
+To make it available in Docker Hub Registry -&gt; push it
+
+<li>
+"docker push &lt;YOUR_TAG&gt;"
+
+</ul>
+
+<div id="LAYERED ARCHITECTURE"><h1 id="LAYERED ARCHITECTURE" class="header"><a href="#LAYERED ARCHITECTURE">LAYERED ARCHITECTURE</a></h1></div>
+<ul>
+<li>
+Each line of instruction creates a new layer
+
+<li>
+"docker history &lt;TAG&gt;" shows the creation of each layer and detailed info
+
+<li>
+All the layers built are <em>cached</em> by Docker
+
+<li>
+If there is a <em>FAILURE</em> when you re-run the build command Docker uses the first layers from the cache
+
+<li>
+This is also true for <em>ADDING</em> new layers
+
+</ul>
+
+<div id="ENVIRONMENT VARIABLES"><h1 id="ENVIRONMENT VARIABLES" class="header"><a href="#ENVIRONMENT VARIABLES">ENVIRONMENT VARIABLES</a></h1></div>
+<p>
+-e &lt;ENV_VAR&gt;=&lt;VALUE&gt;
+</p>
+<ul>
+<li>
+To find out which env variables are set -&gt; <em>docker inspect</em>
+
+</ul>
+
+<div id="COMMANDS VS ENTRYPOINTS"><h1 id="COMMANDS VS ENTRYPOINTS" class="header"><a href="#COMMANDS VS ENTRYPOINTS">COMMANDS VS ENTRYPOINTS</a></h1></div>
+<ul>
+<li>
+Entrypoint instruction is like the command instruction
+
+<li>
+Whatever you specify on the command line will get <em>APPENDED</em> to the entrypoint
+
+<li>
+"docker run ubuntu-sleeper 10" with an ENTRYPOINT ["sleep"] will run "sleep 10" after the container starts
+
+<li>
+To sum up, with CMD the CLI parameters will be <em>REPLACED</em> entirely but with ENTRYPOINT they will be <em>APPENDED</em>
+
+<li>
+You can give a <em>default</em> value for the entrypoint by also specifying a CMD setting inside the Dockerfile
+
+<li>
+You can <em>OVERRIDE</em> the entrypoint at startup with the "--entrypoint" flag
+
+</ul>
+
+<div id="DOCKER COMPOSE"><h1 id="DOCKER COMPOSE" class="header"><a href="#DOCKER COMPOSE">DOCKER COMPOSE</a></h1></div>
+<ul>
+<li>
+If we need to setup a complex app with multiple services a better way is to use <em>docker compose</em> instead of running containers one by one
+
+<li>
+Configuration file in YAML format
+
+<li>
+"docker-compose up"
+
+</ul>
+
+<div id="DOCKER COMPOSE-LINKS"><h2 id="LINKS" class="header"><a href="#DOCKER COMPOSE-LINKS">LINKS</a></h2></div>
+<ul>
+<li>
+"--link &lt;name or id&gt;:alias" is used to link different containers
+
+<li>
+"--link redis:redis" for example is used to link a redis container with the name redis
+
+<li>
+It creates an entry into the "/etc/hosts" file on the container with the internal IP of the redis container
+
+<li>
+Using links in this way is <em>DEPRECATED</em>
+
+</ul>
+
+<div id="DOCKER COMPOSE-DOCKER COMPOSE"><h2 id="DOCKER COMPOSE" class="header"><a href="#DOCKER COMPOSE-DOCKER COMPOSE">DOCKER COMPOSE</a></h2></div>
+<ul>
+<li>
+create a <em>docker-compose.yml</em> file
+
+<li>
+create a dictionary of container names
+
+<li>
+under each item -&gt; specify which <em>image</em> to use
+
+<li>
+if there are any other options (such as port mappings) add those
+
+<li>
+finally, for whichever container needs a <em>link</em> create "links" key with the appropriate value
+
+<li>
+if no value is present docker uses the key as the value
+
+<li>
+then use <em>"docker-compose up"</em>
+
+</ul>
+
+<p>
+! If any images are not already <em>built and available</em>, we need to use "build" instead of "image" in our YAML file
+</p>
+
+<ul>
+<li>
+"build" line will have an application directory with a Dockerfile inside of it
+
+</ul>
+
+<p>
+! There are different "docker-compose.yml" versions
+</p>
+
+<ul>
+<li>
+Version 1 -&gt; DB should come first
+
+<li>
+Version 2 -&gt; you have a <em>services</em> section at the root of the file
+
+<li>
+Version 2 and up -&gt; must specify version you are using
+
+<li>
+Version 1 -&gt; docker-compose attaches all the containers it runs to the default bridged network and then use links between the containers
+
+<li>
+Version 2 -&gt; automatically creates a dedicated bridged network and attaches all containers there, all containers able to communicate using each other's names (so you DO NOT need <em>links</em>)
+
+<li>
+Version 2 -&gt; there is a <em>"depends on"</em> property so we don't need to specify services in a specific order
+
+<li>
+Version 2 -&gt; <em>"networks"</em> proprty: you can separate networks into <em>backend</em> and <em>frontend</em> to run on separate networks
+
+<li>
+You would have to put some frontend services under both networks since they need to communicate with the backend
+
+</ul>
+
+<div id="DOCKER ENGINE"><h1 id="DOCKER ENGINE" class="header"><a href="#DOCKER ENGINE">DOCKER ENGINE</a></h1></div>
+<ul>
+<li>
+When you install Docker on a linux host you actually install <em>3 components</em>
+
+<ul>
+<li>
+Docker Daemon
+
+<li>
+REST API server
+
+<li>
+Docker CLI
+
+</ul>
+<li>
+The docker engine can be <em>REMOTE</em>
+
+<li>
+You can use the "-H" flag to specify a remote docker host
+
+</ul>
+
+<div id="DOCKER ENGINE-CONTAINERIZATION"><h2 id="CONTAINERIZATION" class="header"><a href="#DOCKER ENGINE-CONTAINERIZATION">CONTAINERIZATION</a></h2></div>
+<ul>
+<li>
+Docker uses <em>NAMESPACES</em> to isolate workspace, process IDs, network, interprocess communication, mounts and unix time sharing systems
+
+<li>
+This provides <em>ISOLATION BETWEEN CONTAINERS</em>
+
+<li>
+The processes running inside the container are in fact processes running on the underlying host
+
+<li>
+Two processes cannot have the same process ID of 1
+
+<li>
+Container gets its own root process tree with PID 1
+
+</ul>
+
+<div id="DOCKER ENGINE-CGROUPS (control groups)"><h2 id="CGROUPS (control groups)" class="header"><a href="#DOCKER ENGINE-CGROUPS (control groups)">CGROUPS (control groups)</a></h2></div>
+<ul>
+<li>
+How much of the resources are dedicated to the host and the containers?
+
+<li>
+How does Docker manage and share the resources between the containers?
+
+<li>
+By default, there is <em>NO RESTRICTION</em> as to how much of a resource a container can use
+
+<li>
+There is a way to <em>RESTRICT</em> the amount of CPU and memory a container can use:
+
+<ul>
+<li>
+cgroups
+
+</ul>
+<li>
+"--cpu" option when running a <em>docker run</em> command
+
+<ul>
+<li>
+--cpu=.5 -&gt; 50% of host cpu
+
+</ul>
+<li>
+"--memory" option for memory
+
+<ul>
+<li>
+--memory=100m -&gt; 100mb
+
+</ul>
+</ul>
+
+<div id="DOCKER STORAGE"><h1 id="DOCKER STORAGE" class="header"><a href="#DOCKER STORAGE">DOCKER STORAGE</a></h1></div>
+<ul>
+<li>
+/var/lib/docker -&gt; where Docker stores data by <em>default</em>
+
+<li>
+After a container is built, image layers are <em>READ ONLY</em>
+
+<li>
+Container layer is the <em>writable layer</em> -&gt; read/write
+
+<li>
+When the container is destroyed this layer is also destroyed
+
+</ul>
+
+<div id="DOCKER STORAGE-COPY-ON WRITE"><h2 id="COPY-ON WRITE" class="header"><a href="#DOCKER STORAGE-COPY-ON WRITE">COPY-ON WRITE</a></h2></div>
+<ul>
+<li>
+When we need to make changes to the source code, Docker creates a copy of the source code and our changes live on the <em>container layer</em>
+
+</ul>
+
+<div id="DOCKER STORAGE-VOLUMES"><h2 id="VOLUMES" class="header"><a href="#DOCKER STORAGE-VOLUMES">VOLUMES</a></h2></div>
+<ul>
+<li>
+If we wish to persist data we <em>need to add a persistent volume</em>
+
+<li>
+docker volume create &lt;dir_name&gt;
+
+<li>
+We can <em>MOUNT</em> this volume with the "-v" flag
+
+<li>
+ex. "docker run -v data_volume:/var/lib/mysql mysql"
+
+<li>
+What if you <em>DID NOT</em>  create the folder for the volume before running the command?
+
+<ul>
+<li>
+Docker automatically creates the folder before mounting it
+
+</ul>
+<li>
+We can also just mount a directory  where we want our data to live but <em>we need to specify the full path</em>
+
+</ul>
+
+<p>
+The first is called <em>volume mounting</em> and the second type is called <em>bind mounting</em>
+! This is the old way and the new <em>PREFERRED</em> way is to use the <em>"--mount"</em> option as it is more verbose
+</p>
+
+<ul>
+<li>
+Who is responsible for doing all these operations?
+
+<ul>
+<li>
+Maintaining a layered architecture
+
+<li>
+Creating a writable layer moving files across layers to enable copy and write
+
+</ul>
+<li>
+The answer is <em>storage drivers</em>
+
+<li>
+AUFS, ZFS, BTRFS, Device Mapper, Overlay, Overlay2
+
+</ul>
+
+<div id="DOCKER NETWORKING"><h1 id="DOCKER NETWORKING" class="header"><a href="#DOCKER NETWORKING">DOCKER NETWORKING</a></h1></div>
+<ul>
+<li>
+When you install Docker, <em>three networks are created by DEFAULT</em>
+
+<ul>
+<li>
+Bridge
+
+<li>
+null
+
+<li>
+Host
+
+</ul>
+<li>
+Bridge is the <em>default network</em> a container gets attached to
+
+<li>
+You can use the <em>"--network"</em> parameter to change which network a container attaches itself
+
+<li>
+Bridge network is a <em>private, internal network</em> on the host
+
+<li>
+Containers on this network usually get an IP in the range 172.17 series
+
+<li>
+Containers can reach each other with this IP
+
+<li>
+If you run a container on the <em>host network</em>:
+
+<ul>
+<li>
+You take out any <em>NETWORK ISOLATION</em> between the docker host and the container
+
+</ul>
+<li>
+This means you cannot run multiple containers with the same port
+
+<li>
+<em>Null network</em> means that containers are <em>NOT</em> attached to any network and <em>DOES NOT</em> have any access to <em>external network</em> or <em>other containers</em>
+
+</ul>
+
+<div id="DOCKER NETWORKING-USER DEFINED NETWORKS"><h2 id="USER DEFINED NETWORKS" class="header"><a href="#DOCKER NETWORKING-USER DEFINED NETWORKS">USER DEFINED NETWORKS</a></h2></div>
+<ul>
+<li>
+You can create your own internal network by:
+
+<ul>
+<li>
+"docker network create --driver bridge --subnet 182.18.0.0/16 &lt;NAME&gt;"
+
+</ul>
+</ul>
+
+<p>
+If you want to see info about the network:
+"docker inspect &lt;NAME_OR_ID&gt;"
+</p>
+
+<div id="DOCKER NETWORKING-EMBEDDED DNS"><h2 id="EMBEDDED DNS" class="header"><a href="#DOCKER NETWORKING-EMBEDDED DNS">EMBEDDED DNS</a></h2></div>
+<ul>
+<li>
+Use the container name when you try to reach other containers instead of its internal IP since it <em>CAN</em> change
+
+<li>
+Docker has a built-in DNS server that helps the containers to resolve each other using their container name
+
+<li>
+How does this work?
+
+<ul>
+<li>
+Network namespaces!
+
+</ul>
+</ul>
+
+<p>
+To list all networks:
+"docker network ls"
+</p>
+
+<div id="DOCKER REGISTRY"><h1 id="DOCKER REGISTRY" class="header"><a href="#DOCKER REGISTRY">DOCKER REGISTRY</a></h1></div>
+<ul>
+<li>
+user_or_account_name/image_or_repo_name
+
+<li>
+for example -&gt; nginx/nginx
+
+<li>
+but since they are both the same we can just use the image name to pull from the registry
+
+<li>
+default registry is <em>docker hub</em> which is <em>docker.io</em>
+
+<li>
+Many cloud providers provide a <em>private registry by default</em>
+
+<li>
+"docker login &lt;REGISTRY_NAME&gt;" is how you <em>login</em> to a <em>private registry</em> before pulling or pushing from a private registry
+
+<li>
+You can also <em>DEPLOY</em> your own private registry
+
+<ul>
+<li>
+It can be found as a docker image
+
+</ul>
+</ul>
+
+<div id="DOCKER ON WINDOWS AND MAC"><h1 id="DOCKER ON WINDOWS AND MAC" class="header"><a href="#DOCKER ON WINDOWS AND MAC">DOCKER ON WINDOWS AND MAC</a></h1></div>
+<div id="DOCKER ON WINDOWS AND MAC-DOCKER ON WINDOWS"><h2 id="DOCKER ON WINDOWS" class="header"><a href="#DOCKER ON WINDOWS AND MAC-DOCKER ON WINDOWS">DOCKER ON WINDOWS</a></h2></div>
+<ul>
+<li>
+First option on Windows was to use <em>Docker Toolbox</em>
+
+<ul>
+<li>
+This was basically installing a <em>Linux VM</em> and then running Docker inside of it
+
+</ul>
+<li>
+Second option -&gt; <em>Docker Desktop for Windows</em>
+
+<ul>
+<li>
+This uses <em>Microsoft Hyper-V</em> the native virtualization technology
+
+<li>
+Creates a virtual Linux system but on Hyper-V
+
+</ul>
+<li>
+Both these options help you run Linux container on a Windows machine
+
+<li>
+Windows containers are possible since Windows Server 2016
+
+<li>
+You need to configure Docker to use <em>Windows containers</em> instead of Linux ones
+
+</ul>
+
+<ul>
+<li>
+Two types of containers:
+
+<ul>
+<li>
+Windows Server containers:
+
+<ul>
+<li>
+Works exactly like Linux containers where the OS kernel is shared
+
+</ul>
+<li>
+Hyper-V Isolation:
+
+<ul>
+<li>
+Each container is run within a highly optimized virtual machine guaranteeing complete kernel isolation between the containers and the underlying host OS
+
+</ul>
+</ul>
+</ul>
+
+<div id="DOCKER ON WINDOWS AND MAC-DOCKER ON MAC"><h2 id="DOCKER ON MAC" class="header"><a href="#DOCKER ON WINDOWS AND MAC-DOCKER ON MAC">DOCKER ON MAC</a></h2></div>
+<ul>
+<li>
+<em>Docker Toolbox</em>:
+
+<ul>
+<li>
+Similar to the Windows option
+
+</ul>
+<li>
+<em>Docker Desktop for Mac</em>
+
+<ul>
+<li>
+HyperKit virtualization technology
+
+</ul>
+<li>
+There are no Mac based images or containers; these technologies are both for running Linux containers on a Mac system
+
+</ul>
+
+<div id="CONTAINER ORCHESTRATION"><h1 id="CONTAINER ORCHESTRATION" class="header"><a href="#CONTAINER ORCHESTRATION">CONTAINER ORCHESTRATION</a></h1></div>
+<ul>
+<li>
+Why orchestrate?
+
+<ul>
+<li>
+Without orchestration, you would have to <em>monitor and keep a close watch</em> on the situation and <em>deploy new machines MANUALLY</em> to keep up with the load
+
+<li>
+You also need to keep an eye on the <em>HEALTH</em> of these containers and the host
+
+</ul>
+<li>
+Typically a container orchestration solution consists of <em>multiple Docker hosts</em> that can host <em>containers</em>
+
+<li>
+"docker service create --replicas=100 nodejs" -&gt; <em>Docker Swarm</em>
+
+</ul>
+
+<div id="CONTAINER ORCHESTRATION-DOCKER SWARM"><h2 id="DOCKER SWARM" class="header"><a href="#CONTAINER ORCHESTRATION-DOCKER SWARM">DOCKER SWARM</a></h2></div>
+<ul>
+<li>
+You can combine <em>multiple Docker machines</em> together into a single cluster
+
+<li>
+You need a host or multiple hosts:
+
+<ul>
+<li>
+Then you must <em>DESIGNATE</em> one host to be the <em>manager</em> and the others as <em>workers</em>
+
+<li>
+"docker swarm init" -&gt; run on manager
+
+<li>
+"docker swarm join --token &lt;TOKEN&gt;" -&gt; run on workers
+
+</ul>
+<li>
+<em>Docker services</em> are one or more instances of a single app or service that runs across the nodes in the swarm cluster
+
+</ul>
+
+<div id="CONTAINER ORCHESTRATION-KUBERNETES"><h2 id="KUBERNETES" class="header"><a href="#CONTAINER ORCHESTRATION-KUBERNETES">KUBERNETES</a></h2></div>
+<ul>
+<li>
+K8s cluster consists of <em>a set of nodes</em>
+
+<li>
+A <em>node</em> is a machine <em>physical or virtual</em> on which a k8s software is installed
+
+<li>
+Even if a node <em>FAILS</em> you can have your cluster working
+
+<li>
+The <em>master</em> is a node with the k8s <em>CONTROL PLANE</em> is installed
+
+<li>
+The API Server:
+
+<ul>
+<li>
+The frontend for k8s - the user's management, devices, CLI
+
+</ul>
+<li>
+etcd:
+
+<ul>
+<li>
+a <em>distributed, reliable</em> key-value store used by k8s to store all data used to manage the cluster
+
+</ul>
+<li>
+scheduler:
+
+<ul>
+<li>
+distributing work or containers across multiple nodes
+
+</ul>
+<li>
+controllers:
+
+<ul>
+<li>
+makes decisions to bring up new containers
+
+</ul>
+<li>
+container runtime:
+
+<ul>
+<li>
+the underlying software that is used to run containers
+
+<li>
+in our case: <em>Docker</em>
+
+</ul>
+<li>
+kubelet:
+
+<ul>
+<li>
+the agent that runs on each node in the cluster
+
+<li>
+responsible for making sure that the containers are running on the nodes as expected
+
+</ul>
+</ul>
+
+<p>
+"kubectl" is the command we use for k8s related things
+</p>
+
+</body>
+</html>

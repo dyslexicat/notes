@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>Kubernetes for Beginners</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="KUBERNETES"><h1 id="KUBERNETES" class="header"><a href="#KUBERNETES">KUBERNETES</a></h1></div>
+<div id="KUBERNETES-Advantages"><h3 id="Advantages" class="header"><a href="#KUBERNETES-Advantages">Advantages</a></h3></div>
+<ul>
+<li>
+Highly available, HW failures are not critical since we have multiple instances
+
+<li>
+Load balanced
+
+<ul>
+<li>
+When demand increases we deploy more instances
+
+</ul>
+<li>
+When we run <em>out of HW resources</em> we can scale up or down
+
+</ul>
+
+<div id="KUBERNETES-Architecture"><h3 id="Architecture" class="header"><a href="#KUBERNETES-Architecture">Architecture</a></h3></div>
+<ul>
+<li>
+A <em>node</em> is a machine, <em>physical or virtual</em>, on which k8s is installed
+
+<li>
+A node is a <em>worker machine</em> where containers will be launched by k8s
+
+<li>
+A <em>cluster</em> is a set of nodes grouped together
+
+<li>
+The <em>master node</em> is responsible for managing the cluster
+
+<ul>
+<li>
+Responsible for <em>orchestration</em>
+
+</ul>
+<li>
+When you install k8s you actually install:
+
+<ul>
+<li>
+API Server:
+
+<ul>
+<li>
+Frontend for k8s services
+
+</ul>
+<li>
+etcd:
+
+<ul>
+<li>
+a <em>distributed reliable key-value store</em>
+
+<li>
+stores all data used to manage the cluster
+
+</ul>
+<li>
+Scheduler:
+
+<ul>
+<li>
+responsible for <em>distributing work or containers</em> across multiple nodes
+
+</ul>
+<li>
+Controller:
+
+<ul>
+<li>
+responsible for <em>noticing and responding</em> when nodes, containers or endpoints <em>GO DOWN</em>
+
+<li>
+makes decision to bring up new containers
+
+</ul>
+<li>
+Container Runtime:
+
+<ul>
+<li>
+underlying software that is used to run containers
+
+<li>
+in this case <em>Docker</em>
+
+</ul>
+<li>
+kubelet:
+
+<ul>
+<li>
+the <em>agent</em> that runs in <em>each node</em> in the cluster
+
+<li>
+responsible for making sure that the containers are running on nodes <em>as expected</em>
+
+</ul>
+</ul>
+</ul>
+
+<p>
+How are these components distributed across different types of servers?
+How does one server become a master and the other a slave?
+</p>
+<ul>
+<li>
+The <em>worker node</em> is where the containers are <em>HOSTED</em>
+
+<ul>
+<li>
+This means that it needs to have the <em>container runtime</em> on it
+
+<li>
+They also have the <em>kubelet agent</em> that is responsible for interacting with a master
+
+</ul>
+<li>
+The <em>master server</em>:
+
+<ul>
+<li>
+has the kube API server and that is what makes it a master
+
+<li>
+all the information gathered is stored in a key-value store so it has <em>etcd</em>
+
+<li>
+also have <em>controller</em> and <em>scheduler</em>
+
+</ul>
+</ul>
+
+<p>
+<em>kubectl</em>:
+</p>
+<ul>
+<li>
+used to <em>deploy</em> and <em>manage</em> apps on k8s a cluster
+
+<li>
+also to get cluster information, to get the status of other nodes in the cluster and to manage other things
+
+<ul>
+<li>
+kubectl run &lt;NODE_NAME&gt;
+
+<li>
+kubectl cluster-info
+
+<li>
+kubectl get nodes
+
+<li>
+kubectl describe pod &lt;POD_NAME&gt;
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-KUBERNETES SETUP"><h2 id="KUBERNETES SETUP" class="header"><a href="#KUBERNETES-KUBERNETES SETUP">KUBERNETES SETUP</a></h2></div>
+<div id="KUBERNETES-KUBERNETES SETUP-Local Solutions"><h3 id="Local Solutions" class="header"><a href="#KUBERNETES-KUBERNETES SETUP-Local Solutions">Local Solutions</a></h3></div>
+<ul>
+<li>
+kubeadm
+
+<li>
+microk8s
+
+<li>
+minikube
+
+</ul>
+
+<p>
+minikube <em>bundles</em> together all the components of a working k8s cluster
+you still need <em>kubectl</em> utility installed when working with these solutions
+</p>
+
+<div id="KUBERNETES-KUBERNETES SETUP-On the Cloud"><h3 id="On the Cloud" class="header"><a href="#KUBERNETES-KUBERNETES SETUP-On the Cloud">On the Cloud</a></h3></div>
+<ul>
+<li>
+GKE / Amazon EKS / Azure AKS
+
+</ul>
+
+<div id="KUBERNETES-KUBERNETES CONCEPTS"><h2 id="KUBERNETES CONCEPTS" class="header"><a href="#KUBERNETES-KUBERNETES CONCEPTS">KUBERNETES CONCEPTS</a></h2></div>
+<div id="KUBERNETES-KUBERNETES CONCEPTS-PODS"><h3 id="PODS" class="header"><a href="#KUBERNETES-KUBERNETES CONCEPTS-PODS">PODS</a></h3></div>
+<ul>
+<li>
+K8s <em>DOES NOT</em> deploy containers directly on the worker nodes
+
+<li>
+The containers are encapsulated in <em>pods</em>
+
+<li>
+def. A <em>pod</em> is a single instance of an application
+
+<ul>
+<li>
+it is the smallest object you can create in k8s
+
+</ul>
+<li>
+when the load we receive for our app increases k8s spin up new <em>pods</em> instead of creating a new container inside a pod
+
+<li>
+these pods might be on the <em>same node</em>
+
+<li>
+if there is still increasing load k8s can add <em>new workers</em> with pods to the cluster
+
+<li>
+pods usually have a <em>one-to-one</em> relationship with containers running your app
+
+</ul>
+
+<div id="KUBERNETES-KUBERNETES CONCEPTS-MULTI-CONTAINER PODS"><h3 id="MULTI-CONTAINER PODS" class="header"><a href="#KUBERNETES-KUBERNETES CONCEPTS-MULTI-CONTAINER PODS">MULTI-CONTAINER PODS</a></h3></div>
+<ul>
+<li>
+these are <em>possible</em> however instead of having multiple copies of the same container <em>multi-pod scenarios</em> involve <em>helper containers</em>
+
+<li>
+the two containers in such a case can communicate with one another referring to localhost since they are on the same network space
+
+<li>
+they can also share the same storage space
+
+<li>
+multi-pod containers are a <em>rare occurrence</em>
+
+</ul>
+
+<div id="KUBERNETES-PODS WITH YAML"><h2 id="PODS WITH YAML" class="header"><a href="#KUBERNETES-PODS WITH YAML">PODS WITH YAML</a></h2></div>
+<ul>
+<li>
+k8s uses <em>YAML files</em> for the creation of objects such as <em>Pods, replicas, deployment services, etc.</em>
+
+<li>
+a k8s definition file always contains <em>FOUR top level fields</em>:
+
+<ul>
+<li>
+apiVersion
+
+<ul>
+<li>
+the version of the k8s api you are using to create the objects
+
+</ul>
+<li>
+kind
+
+<ul>
+<li>
+type of object you are trying to create
+
+</ul>
+<li>
+metadata
+
+<ul>
+<li>
+data about the object
+
+<li>
+name, labels, etc.
+
+</ul>
+<li>
+spec
+
+<ul>
+<li>
+additional information to k8s pertaining to the object we want to create
+
+<li>
+refer to the documentation
+
+</ul>
+</ul>
+</ul>
+
+<p>
+TIP: "kubectl run redis --image=redis --dry-run=client -o yaml &gt; pod.yml" will <em>CREATE</em> a yaml file and <em>NOT CREATE</em> the pod itself
+TIP: if you just edit a running pod information with "kubectl edit" the changes will apply immediately
+</p>
+
+<div id="KUBERNETES-KUBERNETES CONTROLLERS AND REPLICA SETS"><h2 id="KUBERNETES CONTROLLERS AND REPLICA SETS" class="header"><a href="#KUBERNETES-KUBERNETES CONTROLLERS AND REPLICA SETS">KUBERNETES CONTROLLERS AND REPLICA SETS</a></h2></div>
+<ul>
+<li>
+<em>Replication Controller</em> helps us run multiple instances of a single pod in the k8s cluster
+
+<ul>
+<li>
+provides <em>high availability</em>
+
+<ul>
+<li>
+even if you have a single pod replication controller can help by <em>ensuring the specified number of pods is always up</em> even if our pod fails
+
+</ul>
+<li>
+another reason is <em>load balancing &amp; scaling</em>
+
+<ul>
+<li>
+creates <em>nodes and pods</em> according to the demand our application is facing
+
+</ul>
+</ul>
+</ul>
+
+<p>
+<em>Replication controller</em> is the older technology that is being replaced by Replica Sets
+How do we create a <em>replication controller</em>?
+</p>
+<ul>
+<li>
+create a yaml file!
+
+<li>
+inside the spec we flesh out a <em>template for a pod</em>
+
+<li>
+the template is basically the <em>metadata and spec</em> parts of a pod-definition.yml
+
+<li>
+finally you need to specify the <em>number of replicas</em> and we do that by creating a "replicas" field under the <em>spec</em> part of our yaml file
+
+</ul>
+
+<p>
+<em>Replica Set</em>:
+</p>
+<ul>
+<li>
+You need "apiVersion: apps/v1" in your yaml file
+
+<li>
+the rest is basically the same but you need a <em>selector</em> field underneath the "spec"
+
+<li>
+but why do we need the selector?
+
+<ul>
+<li>
+a replicaset can also manage pods <em>that were not created as part of the replicaset creation</em>
+
+</ul>
+<li>
+selector:
+    matchLabels:
+      type: front-end
+
+</ul>
+
+<div id="KUBERNETES-KUBERNETES CONTROLLERS AND REPLICA SETS-SCALING"><h3 id="SCALING" class="header"><a href="#KUBERNETES-KUBERNETES CONTROLLERS AND REPLICA SETS-SCALING">SCALING</a></h3></div>
+<ul>
+<li>
+You can just update the <em>replicas</em> part of the yaml file
+
+<li>
+2nd way: "kubectl scale --replicas=&lt;NUMBER&gt; -f &lt;YAML_FILE&gt;"
+
+<li>
+3rd way: "kubectl scale --replicas=&lt;NUMBER&gt; &lt;TYPE&gt; &lt;NAME&gt;" (kubectl scale --replicas=6 replicaset myapp-replicaset)
+
+</ul>
+
+<p>
+COMMANDS:
+</p>
+<ul>
+<li>
+kubectl create -f replicaset_def.yml
+
+<li>
+kubectl get replicaset
+
+<li>
+kubectl delete replicaset myapp-replicaset
+
+<li>
+kubectl replace -f replicaset_def.yml
+
+<li>
+kubectl scale -replicas=6 -f replicaset_def.yml
+
+</ul>
+
+<div id="KUBERNETES-DEPLOYMENT"><h2 id="DEPLOYMENT" class="header"><a href="#KUBERNETES-DEPLOYMENT">DEPLOYMENT</a></h2></div>
+<ul>
+<li>
+<em>Rolling updates</em> instead of upgrading all of our application containers at once we <em>SLOWLY</em> update so our users don't get impacted by breaking changes
+
+<li>
+<em>Rollback</em> undoing the update process back to a <em>working state</em>
+
+<li>
+<em>Deployment</em> is a k8s object that comes higher in the hierarchy than Replica Sets
+
+<ul>
+<li>
+they give us the <em>capability</em> to upgrade the underlying instances seamlessly using rolling updates
+
+<li>
+also pause and resume updates
+
+</ul>
+<li>
+we create a yaml file
+
+<li>
+similar to a ReplicaSet except this time the "kind" value will be <em>"Deployment"</em>
+
+</ul>
+
+<p>
+COMMANDS:
+</p>
+<ul>
+<li>
+kubectl get all
+
+<ul>
+<li>
+shows information about created objects
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-UPDATES AND ROLLBACKS"><h2 id="UPDATES AND ROLLBACKS" class="header"><a href="#KUBERNETES-UPDATES AND ROLLBACKS">UPDATES AND ROLLBACKS</a></h2></div>
+<ul>
+<li>
+Updates trigger new <em>rollouts</em> with incremented <em>DEPLOYMENT REVISIONS</em>
+
+<li>
+If our deployment revision 1 has nginx 1.7, and our containers update their nginx version to 1.7.1
+
+<ul>
+<li>
+Deployment revision 2 is <em>rolled out</em>
+
+</ul>
+<li>
+"kubectl rollout status &lt;DEPLOYMENT_NAME&gt;" shows the rollout status
+
+<li>
+"kubectl rollout history &lt;DEPLOYMENT_NAME&gt;" shows the revisions and history of our deployment
+
+<li>
+<span id="KUBERNETES-UPDATES AND ROLLBACKS-Two types"></span><strong id="Two types">Two types</strong> of <em>rollout strategies</em>:
+
+<ol>
+<li>
+<em>Recreate strategy</em>: We can destroy our old containers and create new instances -&gt; <em>APPLICATION HAS DOWNTIME</em>
+
+<li>
+<em>Rolling update</em> (default strategy): Take down old versions and bring up newer ones <em>ONE BY ONE</em> -&gt; <em>NO DOWNTIME</em>
+
+</ol>
+</ul>
+
+<div id="KUBERNETES-UPDATES AND ROLLBACKS-HOW DO YOU UPDATE?"><h3 id="HOW DO YOU UPDATE?" class="header"><a href="#KUBERNETES-UPDATES AND ROLLBACKS-HOW DO YOU UPDATE?">HOW DO YOU UPDATE?</a></h3></div>
+<ul>
+<li>
+Make the changes to your <em>yaml file</em> then run "kubectl apply -f &lt;YAML_FILE&gt;"
+
+<li>
+You can also use "kubectl set image &lt;DEPLOYMENT_NAME&gt; &lt;IMAGE_NAME&gt;=&lt;IMAGE_VER&gt;"
+
+</ul>
+
+<div id="KUBERNETES-UPDATES AND ROLLBACKS-UPGRADES"><h3 id="UPGRADES" class="header"><a href="#KUBERNETES-UPDATES AND ROLLBACKS-UPGRADES">UPGRADES</a></h3></div>
+<ul>
+<li>
+The <em>deployment</em> object creates a new <em>REPLICA SET</em> then starts creating new pods and taking down pods from the old replica set
+
+</ul>
+
+<div id="KUBERNETES-UPDATES AND ROLLBACKS-ROLLBACKS"><h3 id="ROLLBACKS" class="header"><a href="#KUBERNETES-UPDATES AND ROLLBACKS-ROLLBACKS">ROLLBACKS</a></h3></div>
+<ul>
+<li>
+"kubectl rollout undo &lt;DEPLOYMENT_NAME&gt;"
+
+<li>
+Destroys pods from the new replica set and creates the ones from the old replica set
+
+</ul>
+
+<p>
+TIP: "--record" flag records what command has been used to the <em>history</em>
+</p>
+
+<div id="KUBERNETES-NETWORKING IN K8S"><h2 id="NETWORKING IN K8S" class="header"><a href="#KUBERNETES-NETWORKING IN K8S">NETWORKING IN K8S</a></h2></div>
+<ul>
+<li>
+<em>IP addresses are assigned to PODS</em> not containers
+
+<li>
+Nodes have their own internal IP addresses
+
+<li>
+How does this work?
+
+<ul>
+<li>
+When k8s is initially configured we create an <em>internal private network</em> with the address 10.244.0.0 and all the pods are attached to it
+
+<li>
+When you deploy multiple pods they get separate IPs from this private network
+
+<li>
+Accessing pods through this internal IP is not <em>RECOMMENDED</em> since these are <span id="KUBERNETES-NETWORKING IN K8S-subject to change"></span><strong id="subject to change">subject to change</strong> while new pods are created or old ones destroyed
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-NETWORKING IN K8S-CLUSTER NETWORKING"><h3 id="CLUSTER NETWORKING" class="header"><a href="#KUBERNETES-NETWORKING IN K8S-CLUSTER NETWORKING">CLUSTER NETWORKING</a></h3></div>
+<ul>
+<li>
+Each node has their own IP address
+
+<ul>
+<li>
+When pods are initially created they might have the same internal IP address eg. 10.244.0.2
+
+<li>
+This becomes a problem when we create a <em>cluster</em> with these nodes
+
+</ul>
+<li>
+k8s does not automatically handle <em>cluster networking</em> problems
+
+<li>
+k8s <em>EXPECTS US</em> to <span id="KUBERNETES-NETWORKING IN K8S-CLUSTER NETWORKING-setup certain fundamental requirements"></span><strong id="setup certain fundamental requirements">setup certain fundamental requirements</strong>:
+
+<ul>
+<li>
+All containers/pods <em>must be able to communicate</em> to one another <span id="KUBERNETES-NETWORKING IN K8S-CLUSTER NETWORKING-WITHOUT NAT"></span><strong id="WITHOUT NAT">WITHOUT NAT</strong>
+
+<li>
+All nodes <em>must be able to communicate</em> with all containers and vice-versa <span id="KUBERNETES-NETWORKING IN K8S-CLUSTER NETWORKING-WITHOUT NAT"></span><strong id="WITHOUT NAT">WITHOUT NAT</strong>
+
+</ul>
+<li>
+We don't have to set this up ourselves since there are multiple <em>PRE-BUILT solutions</em> exist
+
+<li>
+These solutions:
+
+<ul>
+<li>
+manages the network and IPs in our nodes and assign a <em>different</em> network address for each network in the node
+
+<li>
+this creates a virtual network of all pods and nodes where they are all assigned unique IP addresses
+
+<li>
+and <em>by using simple routing techniques</em>, the cluster networking enables communication between different pods or nodes to meet the networking reqs. of k8s
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-SERVICES"><h2 id="SERVICES" class="header"><a href="#KUBERNETES-SERVICES">SERVICES</a></h2></div>
+<ul>
+<li>
+k8s services <em>enable communication between various components within and outside of the application</em>
+
+<li>
+example:
+
+<ul>
+<li>
+services enabled the frontend app to be made available for our end-users
+
+<li>
+they help communication b/w frontend and backend pods
+
+<li>
+helps establishing connectivity to an <em>external data source</em>
+
+</ul>
+<li>
+services <em>enable loose coupling between microservices in our app</em>
+
+<li>
+In our yaml file, we need the "kind" to be <em>Service</em>
+
+</ul>
+
+<div id="KUBERNETES-SERVICES-EXAMPLE"><h3 id="EXAMPLE" class="header"><a href="#KUBERNETES-SERVICES-EXAMPLE">EXAMPLE</a></h3></div>
+<ul>
+<li>
+Let's say we want to access a web app running inside a pod:
+
+<ul>
+<li>
+User laptop IP: 192.168.1.10
+
+<li>
+Node IP: 192.168.1.2 (Same network as our Laptop)
+
+<li>
+Pod IP: 10.244.0.2 (in a different network)
+
+</ul>
+<li>
+One option is to SSH into the node and then access directly to the pod IP
+
+<li>
+However, we want to access the app from <em>outside the node</em>
+
+<li>
+<em>We need something to map our request to the node from the laptop through the node to the pod running the web container</em>
+
+<ul>
+<li>
+Answer -&gt; <span id="KUBERNETES-SERVICES-EXAMPLE-k8s service"></span><strong id="k8s service">k8s service</strong>
+
+</ul>
+<li>
+Especially, a <em>NodePort service</em>
+
+<ul>
+<li>
+Listens to a port and forward requests to relevant pods
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-SERVICE TYPES"><h2 id="SERVICE TYPES" class="header"><a href="#KUBERNETES-SERVICE TYPES">SERVICE TYPES</a></h2></div>
+<ol>
+<li>
+NodePort
+
+<li>
+ClusterIP
+
+<li>
+LoadBalancer
+
+</ol>
+
+<div id="KUBERNETES-SERVICE TYPES-NodePort"><h3 id="NodePort" class="header"><a href="#KUBERNETES-SERVICE TYPES-NodePort">NodePort</a></h3></div>
+<ul>
+<li>
+Three ports are involved:
+
+<ul>
+<li>
+The port on the pod where the web server is running; referred as the <em>target port</em>
+
+<li>
+Port on the <em>service itself</em>; referred as the <em>port</em>
+
+<li>
+Port on the <em>node itself</em> which we use to access the web server externally; called the <em>node port</em>
+
+<ul>
+<li>
+<em>Node port</em> can be in the range of 30000-32767
+
+</ul>
+</ul>
+<li>
+The service is like a <em>virtual server</em>, inside the node. Inside the cluster, it has its own IP address called <em>the cluster IP of the service</em>
+
+<li>
+We create one with a <em>yaml file</em>
+
+<li>
+Similarly to replicasets, we use a <em>"selector"</em> to connect our NodePort to a specific pod
+
+<li>
+What do you do when you have multiple pods in a production environment?
+
+<ul>
+<li>
+As long as, all our pods have a <em>matching label</em> with our selector, the NodePort service will handle things correctly
+
+</ul>
+<li>
+What happens if our pods are distributed across multiple nodes?
+
+<ul>
+<li>
+k8s creates a service that <em>spans across all the nodes in the cluster</em> and maps the target port to the same node port
+
+</ul>
+</ul>
+
+<div id="KUBERNETES-SERVICE TYPES-ClusterIP"><h3 id="ClusterIP" class="header"><a href="#KUBERNETES-SERVICE TYPES-ClusterIP">ClusterIP</a></h3></div>
+<ul>
+<li>
+Imagine our app setup as the following: frontend/backend/redis
+
+<ul>
+<li>
+All our pods in the frontend need to establish communication with the backend and all the backend pods need to communicate with the redis pods
+
+<li>
+We know that <em>the pods are not static</em> they CAN be destroyed or created at will with <em>different IP addresses</em>
+
+</ul>
+<li>
+ClusterIP can help us <em>group together</em> all these different pods for a service and <em>provide a single interface</em> for other pods to access this service
+
+<li>
+Each layer can now <em>scale or move as required</em> without impacting communication
+
+<li>
+created with a <em>yaml file</em>...
+
+<li>
+You need to specify a port and a target port then match using a <em>selector</em>
+
+</ul>
+
+<div id="KUBERNETES-SERVICE TYPES-LoadBalancer"><h3 id="LoadBalancer" class="header"><a href="#KUBERNETES-SERVICE TYPES-LoadBalancer">LoadBalancer</a></h3></div>
+<ul>
+<li>
+k8s has <em>support for integrating with the native load balancers of cloud platforms</em>
+
+<li>
+this only works on <em>supported platforms</em>
+
+<li>
+After setting it up we can use the LoadBalancer to give our users a <em>single way</em> to access our app and the load balancer directs traffic to relevant pods depending on the load
+
+</ul>
+
+<div id="KUBERNETES-MICROSERVICES"><h2 id="MICROSERVICES" class="header"><a href="#KUBERNETES-MICROSERVICES">MICROSERVICES</a></h2></div>
+<ul>
+<li>
+Same voting-app example (cats vs dogs)
+
+<li>
+voting-app (frontend) / result-app (frontend) / redis / worker (to get results from redis and write to persistent storage) / PostgreSQL
+
+<li>
+Goals:
+
+<ol>
+<li>
+Deploy containers
+
+<li>
+Enable connectivity
+
+<li>
+Enable external access
+
+</ol>
+<li>
+Steps:
+
+<ol>
+<li>
+Deploy Pods, ReplicaSets or Deployments
+
+<li>
+Create <em>Services</em> (ClusterIP)
+
+<ul>
+<li>
+redis
+
+<li>
+db
+
+</ul>
+<li>
+Create <em>Services</em> (NodePort)
+
+<ul>
+<li>
+voting-app
+
+<li>
+result-app
+
+</ul>
+</ol>
+</ul>
+
+<div id="KUBERNETES-KUBERNETES ON CLOUD"><h2 id="KUBERNETES ON CLOUD" class="header"><a href="#KUBERNETES-KUBERNETES ON CLOUD">KUBERNETES ON CLOUD</a></h2></div>
+<ul>
+<li>
+Self-Hosted / Turnkey Solutions
+
+<ul>
+<li>
+You provision VMs
+
+<li>
+You configure VMs
+
+<li>
+You use scripts to deploy the cluster
+
+<li>
+You maintain VMs yourself
+
+</ul>
+<li>
+Hosted (Managed) Solutions
+
+<ul>
+<li>
+K8s-as-a-Service
+
+<li>
+Provider provisions VMs
+
+<li>
+Provider installs k8s
+
+<li>
+Provider maintains VMs
+
+<li>
+In these environments, you mostly <em>DON'T</em> have access to the master nodes or VMs
+
+</ul>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,2272 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>Rancher Administration</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="WEEK 1"><h1 id="WEEK 1" class="header"><a href="#WEEK 1">WEEK 1</a></h1></div>
+<ul>
+<li>
+Aimed at people responsible for managing multiple k8s clusters with Rancher
+
+</ul>
+
+<ul>
+<li>
+Lab Environment
+
+</ul>
+<p>
+rmt server must be up and running
+k3s -&gt; 1 node server rancher server
+existing rke cluster - 1 control &amp; 2 worker nodes
+not highly available and fault tolerant because only we only have 1 control plane
+not enough hardware in this case
+</p>
+
+<p>
+rke cluster-2
+this will be deployed by rancher server
+</p>
+
+<p>
+the first cluster will be registered
+</p>
+
+<ul>
+<li>
+Certification Options
+
+</ul>
+<p>
+70 questions / 90 mins
+from this material
+</p>
+
+<ul>
+<li>
+Additional SUSE Training
+
+</ul>
+<p>
+Other training is available
+</p>
+
+<ul>
+<li>
+Lab Environment Setup
+
+</ul>
+<p>
+6 virtual machines
+rmt server is needed for other VMs to be running
+rmt is the only one with a GUI
+</p>
+
+<p>
+edit etc/hosts if you want to connect using hostnames instead of IPs
+password will be "linux" for all these trainings
+</p>
+
+<p>
+we can do a ping for each rancher machine inside the rmt ssh connection to see if we are communicating
+"for NODE in rancher rke control01 worker01 worker02 ; do ping $NODE.example.com -c1 | grep received ; echo ; done"
+</p>
+
+<p>
+"kubectl get nodes" -&gt; cluster already deployed and we can see all the nodes
+in the training those nodes show up with "SchedulingDisabled" and if we want them to be available for scheduling we need to run
+"kubectl uncordon NODE_NAMES"
+</p>
+
+<p>
+if we want to gracefully shut down the cluster we need to <em>cordon</em> the nodes to make them SchedulingDisabled
+</p>
+ 
+<div id="WEEK 2"><h1 id="WEEK 2" class="header"><a href="#WEEK 2">WEEK 2</a></h1></div>
+<ul>
+<li>
+Company vs. Product
+
+</ul>
+<p>
+SUSE Rancher -&gt; previously called Rancher Labs OSS company.
+Acquired by SUSE in 2020, founded in 2014
+</p>
+
+<p>
+Rancher -&gt; multi-cluster k8s container management platform at scale
+Deployed as k8s app
+aka Rancher Server
+</p>
+
+<div id="WEEK 2-RANCHER ARCHITECTURE"><h2 id="RANCHER ARCHITECTURE" class="header"><a href="#WEEK 2-RANCHER ARCHITECTURE">RANCHER ARCHITECTURE</a></h2></div>
+<p>
+Production level k8s management
+</p>
+<ul>
+<li>
+On-prem, Cloud, Hybrid
+
+<li>
+multiple k8s distributions supported
+
+<li>
+New clusters can be provisioned or existing ones can be registered
+
+</ul>
+
+<p>
+Architecture (bottom to top)
+OS -&gt; SUSE Enterprise Linux
+K8s -&gt; Datacenter (RKE) / Cloud (Amazon EKS, Google GKE etc.) / k3s
+SUSE Rancher:
+</p>
+<ul>
+<li>
+Security &amp; Auth
+
+<ul>
+<li>
+Active Directory
+
+<li>
+OKTA
+
+<li>
+Saml
+
+</ul>
+<li>
+Simplified Cluster Ops &amp; Infra Management
+
+<ul>
+<li>
+K8s version management
+
+<li>
+GitOps CD
+
+<li>
+Cluster Templates &amp; Config Enforcement
+
+<li>
+Node Pool Management
+
+<li>
+Cluster Provisioning &amp; Lifecycle Management
+
+</ul>
+<li>
+Policy Enforcement &amp; Governance
+
+<ul>
+<li>
+Centralized audit
+
+<li>
+Monitoring &amp; logging
+
+<li>
+CIS benchmarking (?) -&gt; <em>Security benchmarks</em>
+
+<li>
+RBAC, OPA, Pod &amp; Network Policies (?) -&gt; <em>RBAC: role based access controls</em>
+
+</ul>
+<li>
+Platform Services
+
+<ul>
+<li>
+Rancher Catalog
+
+<li>
+Monitoring &amp; Alerts
+
+<li>
+Dashboards &amp; Observability
+
+<li>
+Service Mesh (Istio)
+
+<li>
+Terraform Operator
+
+<li>
+Longhorn Storage
+
+</ul>
+</ul>
+<p>
+Applications (App 1 / App 2 / App 3)
+</p>
+
+<div id="WEEK 2-RANCHER VALUE POINTS"><h2 id="RANCHER VALUE POINTS" class="header"><a href="#WEEK 2-RANCHER VALUE POINTS">RANCHER VALUE POINTS</a></h2></div>
+<ul>
+<li>
+Can manage any k8s cluster v1.16.15 or newer
+
+<li>
+Easy installation with HELM chart
+
+<li>
+Central authentication
+
+<ul>
+<li>
+Internal/local to Rancher
+
+<li>
+External such as OpenLDAP, Active Directory, Github
+
+</ul>
+<li>
+Provides <em>single point of administration</em>
+
+<li>
+Role-based access control (RBAC) for all clusters
+
+</ul>
+
+<div id="WEEK 2-RANCHER TERMINOLOGY"><h2 id="RANCHER TERMINOLOGY" class="header"><a href="#WEEK 2-RANCHER TERMINOLOGY">RANCHER TERMINOLOGY</a></h2></div>
+<ul>
+<li>
+Rancher Server (HELM chart to be deployed)
+
+<ul>
+<li>
+Manages and provisions k8s clusters
+
+<li>
+Interacts with downstream k8s clusters through Rancher GUI and CLI
+
+</ul>
+<li>
+RKE - Rancher k8s Engine
+
+<ul>
+<li>
+CNCF certified k8s distribution
+
+<li>
+CLI/library used to create and manage a k8s cluster
+
+</ul>
+<li>
+k3s - lightweight k8s
+
+<ul>
+<li>
+CNCF certified k8s distribution
+
+<li>
+easier to use
+
+<li>
+lightweight
+
+<li>
+ideal for one node edge clusters
+
+</ul>
+</ul>
+
+<div id="WEEK 2-RANCHER MANAGEMENT CLUSTER"><h2 id="RANCHER MANAGEMENT CLUSTER" class="header"><a href="#WEEK 2-RANCHER MANAGEMENT CLUSTER">RANCHER MANAGEMENT CLUSTER</a></h2></div>
+<ul>
+<li>
+Rancher is a k8s app
+
+<li>
+Basic setup for high availability requires
+
+<ul>
+<li>
+3 etcd nodes
+
+<ul>
+<li>
+Internal cluster DB
+
+<li>
+Can co-exist with control plane nodes
+
+</ul>
+<li>
+3 control plane nodes
+
+<ul>
+<li>
+Rancher management functionality
+
+<li>
+Can co-exist with etcd nodes
+
+</ul>
+<li>
+3 worker nodes
+
+<ul>
+<li>
+Runs the user workload
+
+<li>
+None for Rancher
+
+</ul>
+</ul>
+</ul>
+
+<p>
+We would have a Load Balancer in front of this RKE Cluster with 3 of these (etcd/worker/control nodes) where the Cluster data lives in the etcd node
+Larger systems you would have everything separated in different VMs
+but etcd nodes can live with control nodes if we don't want to separate everything
+</p>
+
+<p>
+You need an <span id="WEEK 2-RANCHER MANAGEMENT CLUSTER-uneven number"></span><strong id="uneven number">uneven number</strong> (odd) of <em>etcd nodes</em> to figure out if a node has died
+etcd nodes are <em>stateful</em>
+</p>
+
+<p>
+2 control nodes would be enough for a minimal setup
+Control nodes are <em>stateless</em>
+</p>
+
+<div id="WEEK 2-RANCHER SOFTWARE"><h2 id="RANCHER SOFTWARE" class="header"><a href="#WEEK 2-RANCHER SOFTWARE">RANCHER SOFTWARE</a></h2></div>
+<ul>
+<li>
+Majority of Rancher software runs on the Rancher Server
+
+<li>
+Contains everything required to manage the entire Rancher deployment
+
+<ul>
+<li>
+Communicates with the downstream clusters via API provided by cluster or node agent
+
+</ul>
+<li>
+Rancher server should be dedicated to run only Rancher!
+
+<ul>
+<li>
+For security and best performance
+
+<li>
+User workloads are to be run on the downstream clusters
+
+</ul>
+</ul>
+
+<div id="WEEK 2-AUTHENTICATION AND CLUSTER ACCESS"><h2 id="AUTHENTICATION AND CLUSTER ACCESS" class="header"><a href="#WEEK 2-AUTHENTICATION AND CLUSTER ACCESS">AUTHENTICATION AND CLUSTER ACCESS</a></h2></div>
+<ul>
+<li>
+Authentication Proxy
+
+<ul>
+<li>
+Authenticates the caller
+
+<li>
+Sets the proper k8s impersonation headers
+
+<li>
+Forwards k8s API calls to downstream clusters
+
+</ul>
+<li>
+Integrated authentication services
+
+<ul>
+<li>
+Local authentication, Active Directory, OpenLDAP, etc.
+
+</ul>
+</ul>
+
+<p>
+Auth proxy runs inside the <em>Rancher Server</em> when a user runs a command for example "kubectl get pods" it goes through the proxy first then goes to the relevant
+Client controller which sends the request to the downstream clusters
+</p>
+
+<p>
+If a user has the kubeconfig file for the relevant cluster they <em>CAN</em> communicate with that cluster directly through the K8s API Server
+</p>
+
+<div id="WEEK 2-CLUSTER CONTROLLER"><h2 id="CLUSTER CONTROLLER" class="header"><a href="#WEEK 2-CLUSTER CONTROLLER">CLUSTER CONTROLLER</a></h2></div>
+<ul>
+<li>
+Watches for <em>resource changes</em> in the downstream cluster
+
+<li>
+Brings the current state of the downstream cluster to the desired state
+
+<li>
+Configures access control policies to clusters and projects
+
+<li>
+Provisions clusters by calling
+
+<ul>
+<li>
+Docker machine drivers (EC2 etc.)
+
+<li>
+K8s engines (RKE, GKE, etc.)
+
+</ul>
+</ul>
+
+<div id="WEEK 2-DOWNSTREAM CLUSTERS"><h2 id="DOWNSTREAM CLUSTERS" class="header"><a href="#WEEK 2-DOWNSTREAM CLUSTERS">DOWNSTREAM CLUSTERS</a></h2></div>
+<ul>
+<li>
+Managed by Rancher
+
+<li>
+Uses <em>standard k8s API</em> through the <em>Cluster Agent</em>
+
+<ul>
+<li>
+Each node runs Node Agent for node-specific activities
+
+<ul>
+<li>
+Node Agent runs as a DaemonSet
+
+</ul>
+</ul>
+<li>
+Downstream clusters run the apps and services on the worker nodes
+
+</ul>
+
+<div id="WEEK 2-HOSTED k8s PROVIDERS"><h2 id="HOSTED k8s PROVIDERS" class="header"><a href="#WEEK 2-HOSTED k8s PROVIDERS">HOSTED k8s PROVIDERS</a></h2></div>
+<ul>
+<li>
+K8s can be provisioned by cloud providers
+
+<li>
+Rancher integrates with the cloud providers API
+
+<ul>
+<li>
+Allows RBAC from the Rancher UI
+
+</ul>
+</ul>
+
+<div id="WEEK 2-RANCHER LAUNCHED K8s"><h2 id="RANCHER LAUNCHED K8s" class="header"><a href="#WEEK 2-RANCHER LAUNCHED K8s">RANCHER LAUNCHED K8s</a></h2></div>
+<ul>
+<li>
+Provisions RKE on existing nodes
+
+<ul>
+<li>
+Rancher UI calls Docker on the node to deploy the nodes
+
+<li>
+Adds nodes to teh cluster via Rancher cluster agent container
+
+<li>
+Rancher provides a versioned installation scripts for deploying the correct version of Docker for your chosen Linux flavor
+
+</ul>
+<li>
+Can be deployed on
+
+<ul>
+<li>
+Bare metal server
+
+<li>
+Virtualization platform
+
+<li>
+Cloud provider virtual machines with EC2, Azure, Google etc.
+
+<ul>
+<li>
+Deploys first the nodes, then k8s on them
+
+</ul>
+</ul>
+</ul>
+
+<p>
+By nodes they mean VMs like in the first lab
+</p>
+
+<div id="WEEK 2-REGISTERED K8s CLUSTERS WITH CUSTOM DRIVER"><h2 id="REGISTERED K8s CLUSTERS WITH CUSTOM DRIVER" class="header"><a href="#WEEK 2-REGISTERED K8s CLUSTERS WITH CUSTOM DRIVER">REGISTERED K8s CLUSTERS WITH CUSTOM DRIVER</a></h2></div>
+<ul>
+<li>
+Rancher communicates with a k8s cluster that is already up and running
+
+</ul>
+
+<div id="WEEK 2-DIFFERENCES BETWEEN THESE THREE"><h2 id="DIFFERENCES BETWEEN THESE THREE" class="header"><a href="#WEEK 2-DIFFERENCES BETWEEN THESE THREE">DIFFERENCES BETWEEN THESE THREE</a></h2></div>
+<ul>
+<li>
+Infrastructure and Custom clusters
+
+<ul>
+<li>
+All features are available within Rancher
+
+</ul>
+<li>
+Hosted provider clusters
+
+<ul>
+<li>
+Lifecycle management
+
+<li>
+No access to the data plane or control plane
+
+<ul>
+<li>
+Unable to backup or restore
+
+</ul>
+</ul>
+<li>
+Registered clusters
+
+<ul>
+<li>
+Communication only via K8s API
+
+<ul>
+<li>
+No lifecycle management
+
+<li>
+Unable to backup or restore
+
+<li>
+Provider's or general utilities must be used for business continuity
+
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 2-CLUSTER AGENT"><h2 id="CLUSTER AGENT" class="header"><a href="#WEEK 2-CLUSTER AGENT">CLUSTER AGENT</a></h2></div>
+<p>
+1 cluster agent multiple node agents
+</p>
+
+<ul>
+<li>
+Downstream clusters run a cluster agent
+
+<li>
+Cluster agent
+
+<ul>
+<li>
+Connects to the k8s API on Rancher-launched k8s clusters
+
+<li>
+Watches for resource changes in the downstream cluster
+
+<li>
+Brings the current state of the downstream cluster to the desired state
+
+<li>
+Configures access control policies to clusters and projects
+
+<li>
+Provisions clusters by calling the required k8s engines, docker machine drivers, or docker
+
+<li>
+Manages workloads, pod creation, and deployment within each cluster
+
+<li>
+Applies the roles and bindings defined in each cluster's global policies
+
+<li>
+Provides Rancher server information about events, stats, node info, and health
+
+</ul>
+</ul>
+
+<div id="WEEK 2-NODE AGENT"><h2 id="NODE AGENT" class="header"><a href="#WEEK 2-NODE AGENT">NODE AGENT</a></h2></div>
+<ul>
+<li>
+If a cluster agent is not available for the target, one of the node agents creates a tunnel to the cluster controller to communicate with Rancher
+
+<li>
+Node agent is deployed as k8s DaemonSet to ensure it runs on every node in the cluster
+
+<li>
+Node agent interaction is used for
+
+<ul>
+<li>
+Upgrading the k8s version
+
+<li>
+creating or restoring etcd snapshots
+
+</ul>
+</ul>
+
+<div id="WEEK 2-ACCESSING RANCHER UI"><h2 id="ACCESSING RANCHER UI" class="header"><a href="#WEEK 2-ACCESSING RANCHER UI">ACCESSING RANCHER UI</a></h2></div>
+<ul>
+<li>
+Rancher itself is deployed as a k8s app
+
+<li>
+The default name for Rancher cluster is <em>local</em>
+
+</ul>
+
+<div id="WEEK 2-RANCHER POST-INSTALL CONFIG"><h2 id="RANCHER POST-INSTALL CONFIG" class="header"><a href="#WEEK 2-RANCHER POST-INSTALL CONFIG">RANCHER POST-INSTALL CONFIG</a></h2></div>
+<ul>
+<li>
+The system admin has teh ability to configure and fine-tune Rancher for various settings
+
+<ul>
+<li>
+Authentication
+
+<li>
+Authorization
+
+<li>
+Security
+
+<li>
+Security policies
+
+<li>
+Drivers
+
+<li>
+Global DNS entries
+
+<li>
+Default settings
+
+</ul>
+</ul>
+
+<p>
+By default only <em>admin</em> user is created
+</p>
+
+<div id="WEEK 2-GLOBAL CLUSTER VIEW"><h2 id="GLOBAL CLUSTER VIEW" class="header"><a href="#WEEK 2-GLOBAL CLUSTER VIEW">GLOBAL CLUSTER VIEW</a></h2></div>
+<p>
+Global -&gt; Global
+</p>
+<ul>
+<li>
+Settings
+
+<ul>
+<li>
+Rancher config
+
+<li>
+RKE template enforcement
+
+<li>
+Location for metadata updates
+
+</ul>
+<li>
+Security
+
+<ul>
+<li>
+User, Group, and Role management
+
+</ul>
+<li>
+Tools
+
+<ul>
+<li>
+Cluster and node drivers
+
+<li>
+RKE Templates
+
+</ul>
+</ul>
+
+<p>
+Global -&gt; Global lists available clusters
+</p>
+
+<p>
+Global -&gt; local
+</p>
+<ul>
+<li>
+Rancher-specific projects
+
+<li>
+Default
+
+<ul>
+<li>
+For user defined default namespaces
+
+<li>
+None for default Rancher
+
+</ul>
+<li>
+System
+
+<ul>
+<li>
+rancher and k8s namespaces
+
+</ul>
+</ul>
+
+<p>
+Cluster Dashboard -&gt; displays basic utilization info about the selected cluster
+Cluster Events -&gt; a list of recent events for the cluster
+</p>
+
+<p>
+LAB 2.1 -&gt; you gotta do the /etc/hosts changes according to the Week 1 vid
+172.30.201.2 rmt.example.com rmt
+172.30.201.3 rancher.example.com rancher
+172.30.201.11 control01.example.com control01
+172.30.201.12 rke.example.com rke
+172.30.201.21 worker01.example.com worker01
+172.30.201.22 worker02.example.com worker02
+</p>
+
+<div id="WEEK 2-INTERACTING WITH CLUSTERS"><h2 id="INTERACTING WITH CLUSTERS" class="header"><a href="#WEEK 2-INTERACTING WITH CLUSTERS">INTERACTING WITH CLUSTERS</a></h2></div>
+<p>
+Either through GUI or CLI
+You need a token to use the CLI
+</p>
+
+<p>
+Rancher API
+</p>
+<ul>
+<li>
+API endpoint and user keys can be found through the <em>avatar icon</em>
+
+<li>
+Admins can manage clusters and projects based on the scope and the Time-to-Live value of the API key
+
+<ul>
+<li>
+Every API request must include a token for the auth info
+
+<li>
+Key management abilities are managed by RBAC
+
+</ul>
+</ul>
+
+<p>
+Q1 - What kind of clusters can be managed with the Rancher server?
+Q2 - What does <em>downstream cluster</em> mean?
+Q3 - How does Rancher manage k8s clusters?
+Q4 - What are the names of the projects that are automatically created on Rancher provisioned clusters?
+</p>
+
+<p>
+Registering and importing are synonyms in terms of registering existing k8s clusters
+A <em>node agent</em> runs on every node of the cluster
+</p>
+
+<div id="WEEK 3"><h1 id="WEEK 3" class="header"><a href="#WEEK 3">WEEK 3</a></h1></div>
+
+<div id="WEEK 3-Multi-Cluster Management UI"><h2 id="Multi-Cluster Management UI" class="header"><a href="#WEEK 3-Multi-Cluster Management UI">Multi-Cluster Management UI</a></h2></div>
+<ul>
+<li>
+Editing a node:
+
+<ul>
+<li>
+Change the node name
+
+<li>
+Node description
+
+<li>
+Manage k8s labels
+
+<ul>
+<li>
+Usable for management tasks for a group of nodes, containers, etc.
+
+</ul>
+<li>
+Manage taints
+
+<ul>
+<li>
+Taints are used to <em>manage scheduling</em>, namely restrict pods not to run on a node
+
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 3-MANAGE NODE &amp; CLUSTER DRIVERS"><h2 id="MANAGE NODE &amp; CLUSTER DRIVERS" class="header"><a href="#WEEK 3-MANAGE NODE &amp; CLUSTER DRIVERS">MANAGE NODE &amp; CLUSTER DRIVERS</a></h2></div>
+<p>
+Global Cluster View -&gt; Add Cluster -&gt; 3 different types of adding a cluster to Rancher
+</p>
+
+<div id="WEEK 3-DRIVER MANAGEMENT"><h2 id="DRIVER MANAGEMENT" class="header"><a href="#WEEK 3-DRIVER MANAGEMENT">DRIVER MANAGEMENT</a></h2></div>
+<p>
+2 types of drivers within rancher
+</p>
+<ul>
+<li>
+Node Drivers
+
+<li>
+Cluster Drivers
+
+</ul>
+
+<p>
+Existing built-in drivers can be enabled-disabled
+</p>
+<ul>
+<li>
+Not all built-in drivers are enabled by default
+
+<li>
+Only enabled node and cluster drivers will be displayed in UI forms
+
+</ul>
+
+<p>
+New drivers can be added
+</p>
+<ul>
+<li>
+Understanding about the corresponding API definition is required
+
+<li>
+Could be provided as a download from the provider
+
+</ul>
+
+<ol>
+<li>
+Node Drivers
+
+<li>
+For node provisioning
+
+<ul>
+<li>
+Used to launch and manage k8s clusters
+
+<li>
+Docker based RKE deployments
+
+</ul>
+<li>
+Built-in drivers for infrastructure providers (EC2, DO, Azure, Google, vSphere)
+
+</ol>
+
+<div id="WEEK 3-MANAGE NODE DRIVERS"><h2 id="MANAGE NODE DRIVERS" class="header"><a href="#WEEK 3-MANAGE NODE DRIVERS">MANAGE NODE DRIVERS</a></h2></div>
+<p>
+Global -&gt; Tools -&gt; Drivers -&gt; Node Drivers (to activate/deactivate)
+</p>
+
+<div id="WEEK 3-ADD A CLUSTER WITH NODE DRIVER"><h2 id="ADD A CLUSTER WITH NODE DRIVER" class="header"><a href="#WEEK 3-ADD A CLUSTER WITH NODE DRIVER">ADD A CLUSTER WITH NODE DRIVER</a></h2></div>
+<ul>
+<li>
+Node pools are configured at infrastructure provider
+
+<ul>
+<li>
+RKE is deployed based on the node pools
+
+<li>
+K8s version and other RKE settings are based on a Node Template
+
+</ul>
+</ul>
+
+<p>
+3 pools -&gt; 1 for etcd, 1 for control plane, 1 for worker nodes
+! By creating a separate pool you have better control over possible scaling requirements
+You need to have a node template before creating nodes
+Auto-replace option -&gt; in case a node fails after X minutes the system will create a new node for that pool
+</p>
+
+<div id="WEEK 3-ADD A CLUSTER WITH CUSTOM DRIVER"><h2 id="ADD A CLUSTER WITH CUSTOM DRIVER" class="header"><a href="#WEEK 3-ADD A CLUSTER WITH CUSTOM DRIVER">ADD A CLUSTER WITH CUSTOM DRIVER</a></h2></div>
+<ul>
+<li>
+RKE cluster is provisioned on existing nodes
+
+<ul>
+<li>
+Very detailed config options
+
+<li>
+A role for each of the nodes are selected and deployed
+
+</ul>
+</ul>
+
+<p>
+etcd / control plane / worker nodes
+3/3/4 you would need to configure this setting 3 times
+copy paste the config command 10 times to your nodes
+</p>
+
+<div id="WEEK 3-REGISTER AN EXISTING K8s CLUSTER"><h2 id="REGISTER AN EXISTING K8s CLUSTER" class="header"><a href="#WEEK 3-REGISTER AN EXISTING K8s CLUSTER">REGISTER AN EXISTING K8s CLUSTER</a></h2></div>
+<ul>
+<li>
+Specific commands for Rancher agent deployment are provided
+
+</ul>
+
+<ol>
+<li>
+Cluster Drivers
+
+<li>
+Rancher provides built in drivers for the most common cloud providers for k8s cluster provisioning
+
+<ul>
+<li>
+Amazon EKS
+
+<li>
+Azure AKS
+
+<li>
+Google GKE
+
+</ul>
+</ol>
+
+<div id="WEEK 3-ADD A HOSTED CLUSTER"><h2 id="ADD A HOSTED CLUSTER" class="header"><a href="#WEEK 3-ADD A HOSTED CLUSTER">ADD A HOSTED CLUSTER</a></h2></div>
+<ul>
+<li>
+Plenty of config options
+
+<ul>
+<li>
+Cloud credentials, k8s version, network, security group, and autoscaling group details
+
+</ul>
+</ul>
+
+<p>
+! You need to choose your region
+</p>
+
+<div id="WEEK 3-VIEW CLUSTER AND NODE AGENTS"><h2 id="VIEW CLUSTER AND NODE AGENTS" class="header"><a href="#WEEK 3-VIEW CLUSTER AND NODE AGENTS">VIEW CLUSTER AND NODE AGENTS</a></h2></div>
+<ul>
+<li>
+Cluster Agent
+
+<li>
+named <em>cattle-cluster-agent</em>
+
+<li>
+Deployed on the Rancher-launched k8s clusters
+
+<ul>
+<li>
+The type of the k8s resource is <span id="WEEK 3-VIEW CLUSTER AND NODE AGENTS-Deployment"></span><strong id="Deployment">Deployment</strong>
+
+<li>
+This means that in case the pod will be shutdown (crashes) a new instance will automatically start by k8s
+
+</ul>
+<li>
+Connects to the k8s API of the cluster
+
+<li>
+Global -&gt; &lt;CLUSTER&gt; -&gt; System -&gt; cattle-cluster-agent
+
+</ul>
+
+<ul>
+<li>
+Node Agent
+
+<li>
+named <em>cattle-node-agent</em>
+
+<li>
+Deployed on the registered or hosted k8s clusters
+
+<ul>
+<li>
+Type of the k8s resource is <span id="WEEK 3-VIEW CLUSTER AND NODE AGENTS-DaemonSet"></span><strong id="DaemonSet">DaemonSet</strong>
+
+<ul>
+<li>
+Runs on every node
+
+<li>
+Responsible for backups or upgrading k8s version (node-specific)
+
+<li>
+Multiple of these agents
+
+</ul>
+<li>
+Interacts with the nodes
+
+<li>
+Performs cluster ops such as k8s upgrades, snapshots, etc.
+
+</ul>
+<li>
+Global -&gt; &lt;CLUSTER&gt; -&gt; System -&gt; cattle-node-agent
+
+</ul>
+
+<div id="WEEK 3-REGISTER AN EXISTING RKE CLUSTER"><h2 id="REGISTER AN EXISTING RKE CLUSTER" class="header"><a href="#WEEK 3-REGISTER AN EXISTING RKE CLUSTER">REGISTER AN EXISTING RKE CLUSTER</a></h2></div>
+<p>
+-&gt; Add Cluster in Global view
+Select <span id="WEEK 3-REGISTER AN EXISTING RKE CLUSTER-Other Cluster"></span><strong id="Other Cluster">Other Cluster</strong> as the cluster type
+Enter the name for the registered cluster and click <span id="WEEK 3-REGISTER AN EXISTING RKE CLUSTER-Create"></span><strong id="Create">Create</strong>
+</p>
+
+<div id="WEEK 3-REGISTRATION DETAILS"><h2 id="REGISTRATION DETAILS" class="header"><a href="#WEEK 3-REGISTRATION DETAILS">REGISTRATION DETAILS</a></h2></div>
+<ul>
+<li>
+Cluster registration info and requirements will be displayed
+
+<ul>
+<li>
+Command boxes contain alternative ways for completing the cluster registration
+
+<ul>
+<li>
+A valid <em>kubeconfig</em> file to access the cluster must be available
+
+<li>
+With self-signed certificates, the piped curl command must be used
+
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 3-UPDATED CLUSTER LIST"><h2 id="UPDATED CLUSTER LIST" class="header"><a href="#WEEK 3-UPDATED CLUSTER LIST">UPDATED CLUSTER LIST</a></h2></div>
+<ul>
+<li>
+The registered RKE cluster will be listed
+
+<ul>
+<li>
+For a healthy cluster, the state should be <em>Active</em>
+
+</ul>
+</ul>
+
+<p>
+A minute or two to become active
+</p>
+
+<div id="WEEK 3-PROVISION AN RKE CLUSTER ON EXISTING NODES"><h2 id="PROVISION AN RKE CLUSTER ON EXISTING NODES" class="header"><a href="#WEEK 3-PROVISION AN RKE CLUSTER ON EXISTING NODES">PROVISION AN RKE CLUSTER ON EXISTING NODES</a></h2></div>
+<p>
+Add Cluster -&gt; Existing Nodes
+Enter cluster name -&gt; Select k8s version -&gt; select <em>network provider</em>
+</p>
+
+<div id="WEEK 3-CLUSTER ROLES"><h2 id="CLUSTER ROLES" class="header"><a href="#WEEK 3-CLUSTER ROLES">CLUSTER ROLES</a></h2></div>
+<p>
+etcd / control plane / worker
+copy the command box contents
+</p>
+
+<div id="WEEK 3-Activate Docker Containers on the Node"><h2 id="Activate Docker Containers on the Node" class="header"><a href="#WEEK 3-Activate Docker Containers on the Node">Activate Docker Containers on the Node</a></h2></div>
+<ul>
+<li>
+Run the command in the terminal on the cluster node
+
+<ul>
+<li>
+Container images are downloaded and provided to local Docker service
+
+</ul>
+<li>
+From the Add Cluster window in Rancher UI
+
+<ul>
+<li>
+<em>1 new node has registered</em> message
+
+</ul>
+</ul>
+
+<div id="WEEK 3-RKE CLUSTER PROVISIONING"><h2 id="RKE CLUSTER PROVISIONING" class="header"><a href="#WEEK 3-RKE CLUSTER PROVISIONING">RKE CLUSTER PROVISIONING</a></h2></div>
+<p>
+Rancher UI displays RKE Cluster provisioning to have started
+</p>
+<ul>
+<li>
+States: <em>Provisioning, Waiting, Error, Updating, etc.</em>
+
+<li>
+It takes 5-10 minutes for the cluster to reach the <em>Active</em> state
+
+</ul>
+<li>
+Repeat the config and provisioning of other nodes 
+
+
+<p>
+Management options are different for <em>rancher launched</em> clusters and <em>custom</em> RKE clusters
+</p>
+
+<div id="WEEK 3-PROVISION AN RKE CLUSTER IN AWS INFRA"><h2 id="PROVISION AN RKE CLUSTER IN AWS INFRA" class="header"><a href="#WEEK 3-PROVISION AN RKE CLUSTER IN AWS INFRA">PROVISION AN RKE CLUSTER IN AWS INFRA</a></h2></div>
+<p>
+Click <em>avatar</em> -&gt; Cloud credentials
+Then you choose <em>Add cluster on EC2</em>
+You need add the node pools and configure everything
+</p>
+
+<div id="WEEK 3-PROVISION AN EKS CLUSTER"><h2 id="PROVISION AN EKS CLUSTER" class="header"><a href="#WEEK 3-PROVISION AN EKS CLUSTER">PROVISION AN EKS CLUSTER</a></h2></div>
+<p>
+Global view -&gt; Add cluster
+Clsuter type -&gt; <em>Amazon EKS Nodes</em>
+Basic info about the EKS cluster
+</p>
+
+<p>
+<em>Networking</em> -&gt; public/private access also create a subnet or use an existing one
+SSH keys cannot be addded later
+</p>
+
+<p>
+<em>Autoscaling</em> group is available
+</p>
+
+<p>
+You <span id="WEEK 3-PROVISION AN EKS CLUSTER-need to"></span><strong id="need to">need to</strong> have your Rancher server as a <em>publically available</em> from the internet for this to work
+</p>
+
+<div id="WEEK 3-PROJECTS AND NAMESPACES"><h2 id="PROJECTS AND NAMESPACES" class="header"><a href="#WEEK 3-PROJECTS AND NAMESPACES">PROJECTS AND NAMESPACES</a></h2></div>
+<ul>
+<li>
+Namespace is a k8s concept that allows division to <em>virtual clusters</em> with separate access control and resource quotas
+
+<li>
+Namespaces can contain:
+
+<ul>
+<li>
+Workloads
+
+<li>
+Services
+
+<li>
+Ingresses
+
+<li>
+Physical Volume Claims
+
+<li>
+ConfigMaps
+
+<li>
+Secrets
+
+<li>
+and other k8s resources
+
+</ul>
+</ul>
+
+<ul>
+<li>
+Namespaces provide a <em>scope</em>
+
+<ul>
+<li>
+Resource names need to be unique within a namespace
+
+<li>
+Namespaces cannot be nested inside one another
+
+<li>
+Each k8s resource can only exist in one namespace
+
+</ul>
+<li>
+Namespaces are used to <em>divide cluster resources</em> between multiple users
+
+</ul>
+
+<div id="WEEK 3-PROJECTS"><h2 id="PROJECTS" class="header"><a href="#WEEK 3-PROJECTS">PROJECTS</a></h2></div>
+<ul>
+<li>
+They help manage clusters by grouping namespaces
+
+<ul>
+<li>
+Assigning resources at the project level allows each namespace in the project to use them
+
+<ul>
+<li>
+You can give people access to multiple namespaces simultaneously
+
+<li>
+Reduces potential human errors
+
+</ul>
+</ul>
+<li>
+Projects allows the admin to configure common
+
+<ul>
+<li>
+RBAC
+
+<li>
+ConfigMaps
+
+<li>
+Secrets
+
+<li>
+Certificates
+
+<li>
+Private registry credentials
+
+</ul>
+</ul>
+
+<div id="WEEK 3-PROJECT ACCESS"><h2 id="PROJECT ACCESS" class="header"><a href="#WEEK 3-PROJECT ACCESS">PROJECT ACCESS</a></h2></div>
+<ul>
+<li>
+Project Members:
+
+<ul>
+<li>
+Owner
+
+<li>
+Member
+
+<ul>
+<li>
+Can manage resources in the project but cannot change the project itself
+
+</ul>
+<li>
+Read-Only
+
+<li>
+Custom
+
+</ul>
+</ul>
+
+<div id="WEEK 3-NETWORK ISOLATION"><h2 id="NETWORK ISOLATION" class="header"><a href="#WEEK 3-NETWORK ISOLATION">NETWORK ISOLATION</a></h2></div>
+<ul>
+<li>
+Managed by Network Provider
+
+<ul>
+<li>
+Selected during the provisioning time
+
+</ul>
+<li>
+Canal Network Provider allows
+
+<ul>
+<li>
+Enabling network isolation
+
+<ul>
+<li>
+Resources in one project will not be able to see or communicate with resources in other projects
+
+<li>
+Single-cluster multi-tenancy
+
+<li>
+Does not apply to the System project or its namespaces
+
+<ul>
+<li>
+Resources inside System project will have access to everything in order to operate correctly
+
+</ul>
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 3-PROJECT RESOURCE QUOTAS"><h2 id="PROJECT RESOURCE QUOTAS" class="header"><a href="#WEEK 3-PROJECT RESOURCE QUOTAS">PROJECT RESOURCE QUOTAS</a></h2></div>
+<ul>
+<li>
+Define the total amount of a particular resource a project can use
+
+<li>
+Calculation aggregates all namespaces in the project
+
+<li>
+Keeps a single project from <em>monopolizing resources</em> that are shared across the cluster
+
+<li>
+Allows a default limit for each namespace to be configured
+
+<li>
+Allows a project to define a default container resource limit for CPU &amp; memory
+
+<li>
+The defaults will be applied to any namespace created after the project defaults are set
+
+</ul>
+
+<div id="WEEK 3-DEFAULT PROJECTS"><h2 id="DEFAULT PROJECTS" class="header"><a href="#WEEK 3-DEFAULT PROJECTS">DEFAULT PROJECTS</a></h2></div>
+<ul>
+<li>
+Clusters contain projects
+
+<li>
+Projects contain namespaces
+
+<li>
+By default, clusters in Rancher get created with two projects
+
+<ul>
+<li>
+System
+
+<li>
+Default
+
+</ul>
+<li>
+New projects can be created for user workloads
+
+<li>
+Default projects can be deleted
+
+<li>
+It is possible to move namespaces between projects
+
+</ul>
+
+<div id="WEEK 3-MANAGE ROLES AND USER PERMISSIONS"><h2 id="MANAGE ROLES AND USER PERMISSIONS" class="header"><a href="#WEEK 3-MANAGE ROLES AND USER PERMISSIONS">MANAGE ROLES AND USER PERMISSIONS</a></h2></div>
+<ul>
+<li>
+By default you have <em>admin</em> user
+
+<li>
+Security -&gt; Users -&gt; Add User
+
+<li>
+Specify <em>Global Permissions</em> (?)
+
+<li>
+Additional <em>built-in</em> roles can also be selected
+
+</ul>
+
+<div id="WEEK 3-AUTHENTICATION"><h2 id="AUTHENTICATION" class="header"><a href="#WEEK 3-AUTHENTICATION">AUTHENTICATION</a></h2></div>
+<ul>
+<li>
+By default users are local to Rancher
+
+<ul>
+<li>
+<em>Local authentication is always enabled (?)</em>
+
+</ul>
+<li>
+Additional external authentication is possible
+
+<ul>
+<li>
+Associates an external user to local one
+
+<li>
+Allows central user management
+
+<li>
+Multiple providers are available
+
+</ul>
+</ul>
+
+<p>
+Configuration is from "Security -&gt; Authentication"
+</p>
+
+<div id="WEEK 3-AUTHENTICATION AND AUTHORIZATION"><h2 id="AUTHENTICATION AND AUTHORIZATION" class="header"><a href="#WEEK 3-AUTHENTICATION AND AUTHORIZATION">AUTHENTICATION AND AUTHORIZATION</a></h2></div>
+<ul>
+<li>
+Each person <em>authenticates</em> to Rancher as a user by logging in
+
+<ul>
+<li>
+Grants access to Rancher
+
+</ul>
+<li>
+After logging in, user's <em>authorization</em> is determined
+
+<ul>
+<li>
+Access rights within the system
+
+</ul>
+<li>
+Authorization is based on:
+
+<ul>
+<li>
+Global permissions (any cluster)
+
+<li>
+Clusters and project based on assigned roles on top of k8s RBAC
+
+</ul>
+</ul>
+
+<div id="WEEK 3-GROUP MANAGEMENT"><h2 id="GROUP MANAGEMENT" class="header"><a href="#WEEK 3-GROUP MANAGEMENT">GROUP MANAGEMENT</a></h2></div>
+<p>
+Available for <em>External Authentication</em>
+</p>
+<ul>
+<li>
+Ability ot log in and access resources is determined on users and groups
+
+<li>
+Local authentication does not support group management capabilities
+
+</ul>
+
+<div id="WEEK 3-ROLE MANAGEMENT"><h2 id="ROLE MANAGEMENT" class="header"><a href="#WEEK 3-ROLE MANAGEMENT">ROLE MANAGEMENT</a></h2></div>
+<p>
+Security -&gt; Roles
+New roles can be added but there are multiple available roles
+</p>
+
+<div id="WEEK 3-UNDERSTANDING TEMPLATES"><h2 id="UNDERSTANDING TEMPLATES" class="header"><a href="#WEEK 3-UNDERSTANDING TEMPLATES">UNDERSTANDING TEMPLATES</a></h2></div>
+<div id="WEEK 3-CORE FEATURES"><h2 id="CORE FEATURES" class="header"><a href="#WEEK 3-CORE FEATURES">CORE FEATURES</a></h2></div>
+<ul>
+<li>
+Cluster configuration standardization
+
+<ul>
+<li>
+Ensures Rancher-provisioned clusters will follow the best practices
+
+<li>
+Prevents less technical users from making not-allowed choices
+
+<li>
+Ability for certain tailoring during the provisioning by enabling to override the default values
+
+</ul>
+<li>
+Ability to share different templates with sets of users and groups
+
+<li>
+Delegation of the ownership of templates to trusted users
+
+<li>
+Control on who can create templates
+
+<li>
+Ability to require users to create clusters from a template
+
+</ul>
+
+<div id="WEEK 3-RKE TEMPLATES"><h2 id="RKE TEMPLATES" class="header"><a href="#WEEK 3-RKE TEMPLATES">RKE TEMPLATES</a></h2></div>
+<ul>
+<li>
+RKE templates
+
+<ul>
+<li>
+Help IT and DevOps teams to secure, standardize, and simplify k8s cluster creation
+
+<li>
+Ease populating and managing large number of smaller k8s clusters
+
+<li>
+Guarantees the clusters are provisioned in uniform and consistent way
+
+</ul>
+<li>
+With templates some of the cluster options can specifically be set or allowed for a change (k8s version, network provisioner)
+
+<li>
+Multiple templates are allowed
+
+</ul>
+
+<div id="WEEK 3-NODE TEMPLATES"><h2 id="NODE TEMPLATES" class="header"><a href="#WEEK 3-NODE TEMPLATES">NODE TEMPLATES</a></h2></div>
+<ul>
+<li>
+Used for infrastructure node deployments in the cloud
+
+<ul>
+<li>
+Configure the node deployment settings specific for a provider
+
+<li>
+Guarantees standard config
+
+<li>
+Easy and quick to use
+
+</ul>
+<li>
+Two ways to create
+
+<ul>
+<li>
+Avatar menu
+
+<li>
+During the cluster creation
+
+</ul>
+</ul>
+
+<div id="WEEK 4"><h1 id="WEEK 4" class="header"><a href="#WEEK 4">WEEK 4</a></h1></div>
+<div id="WEEK 4-CLUSTER EXPLORER IDEOLOGY"><h2 id="CLUSTER EXPLORER IDEOLOGY" class="header"><a href="#WEEK 4-CLUSTER EXPLORER IDEOLOGY">CLUSTER EXPLORER IDEOLOGY</a></h2></div>
+<ul>
+<li>
+The new "Rancher UI"
+
+<li>
+Views and management tasks are <em>more detailed</em> within a cluster
+
+</ul>
+
+<div id="WEEK 4-MANAGE CLUSTERS"><h2 id="MANAGE CLUSTERS" class="header"><a href="#WEEK 4-MANAGE CLUSTERS">MANAGE CLUSTERS</a></h2></div>
+<ul>
+<li>
+Two ways to go to "Cluster Explorer"
+
+<ul>
+<li>
+Inside the cluster list there is an "Explorer" button
+
+<li>
+Next to your avatar there is a button
+
+</ul>
+</ul>
+
+<div id="WEEK 4-WORKLOADS"><h2 id="WORKLOADS" class="header"><a href="#WEEK 4-WORKLOADS">WORKLOADS</a></h2></div>
+<ul>
+<li>
+Apps can be deployed to cluster nodes as workloads
+
+<li>
+Workload is a k8s object that contains:
+
+<ul>
+<li>
+Pods that run the app
+
+<li>
+Metadata that sets rules for the deployment's behavior
+
+</ul>
+<li>
+Deployed from a container image
+
+<li>
+Workloads can be upgraded
+
+<ul>
+<li>
+New versions displayed on the installed apps list
+
+</ul>
+</ul>
+
+<div id="WEEK 4-ACCESSING A WORKLOAD"><h2 id="ACCESSING A WORKLOAD" class="header"><a href="#WEEK 4-ACCESSING A WORKLOAD">ACCESSING A WORKLOAD</a></h2></div>
+<ul>
+<li>
+After deploying an app, it's <em>only accessible inside the cluster</em>
+
+<ul>
+<li>
+If can't be reacher <span id="WEEK 4-ACCESSING A WORKLOAD-externally"></span><strong id="externally">externally</strong>
+
+<ul>
+<li>
+ClusterIP vs NodePort/LoadBalancer
+
+</ul>
+</ul>
+<li>
+External production-level access requires a load balancer
+
+<li>
+Load balancers create  gateway for external connections
+
+<li>
+Accessible with:
+
+<ul>
+<li>
+IP address of the load balancer
+
+<li>
+Port assigned for the app
+
+</ul>
+</ul>
+
+<div id="WEEK 4-CREATING WORKLOADS"><h2 id="CREATING WORKLOADS" class="header"><a href="#WEEK 4-CREATING WORKLOADS">CREATING WORKLOADS</a></h2></div>
+<p>
+Cluster Explorer -&gt; Workload -&gt; Overwise -&gt; Create
+K8s type for the workload must be selected, e.g. <em>Deployment</em>
+</p>
+
+<p>
+DaemonSet -&gt; <em>ephemeral</em> any data will be lost after a restart
+StatefulSet -&gt; database etc. these are not <em>ephemeral</em>
+</p>
+
+<ul>
+<li>
+Namespace, Name, and Container Image must be selected or entered
+
+<li>
+Always use a specific tag for the image, not the latest (?)
+
+<ul>
+<li>
+You want control over the image
+
+</ul>
+</ul>
+
+<div id="WEEK 4-APPS AND MARKETPLACE"><h2 id="APPS AND MARKETPLACE" class="header"><a href="#WEEK 4-APPS AND MARKETPLACE">APPS AND MARKETPLACE</a></h2></div>
+<div id="WEEK 4-APPLICATION DEPLOYMENT IN K8S"><h2 id="APPLICATION DEPLOYMENT IN K8S" class="header"><a href="#WEEK 4-APPLICATION DEPLOYMENT IN K8S">APPLICATION DEPLOYMENT IN K8S</a></h2></div>
+<ul>
+<li>
+Objects in k8s can be deployes using <em>YAML manifest files</em>
+
+<ul>
+<li>
+Deploying simple objects is easy
+
+</ul>
+<li>
+Apps typically are a complex collection of <em>YAML manifest files</em>
+
+<ul>
+<li>
+A utility for ease of management is required
+
+</ul>
+<li>
+Helm is the tool of choice for k8s
+
+</ul>
+
+<div id="WEEK 4-HELM"><h2 id="HELM" class="header"><a href="#WEEK 4-HELM">HELM</a></h2></div>
+<ul>
+<li>
+k8s package manager
+
+<ul>
+<li>
+"one click" deployment for apps and services
+
+</ul>
+<li>
+Helm provides configurable deployments instead of using static files
+
+<li>
+Helm uses charts:
+
+<ul>
+<li>
+Charts provide templating syntax for k8s YAML manifest docs
+
+<li>
+Charts contain the full config for an app to be deployed
+
+<li>
+System-specific, variable info can be added to the settings in the chart
+
+<li>
+Info in a chart can be customized, if required
+
+<li>
+Rancher itself is installed and upgraded using a Helm chart
+
+</ul>
+</ul>
+
+<div id="WEEK 4-REPOSITORIES"><h2 id="REPOSITORIES" class="header"><a href="#WEEK 4-REPOSITORIES">REPOSITORIES</a></h2></div>
+<ul>
+<li>
+Repositories are specific to a cluster (?)
+
+</ul>
+
+<p>
+Explorer -&gt; Main Menu -&gt; Apps &amp; Marketplace -&gt; Chart Repositories -&gt; Create button
+</p>
+
+<div id="WEEK 4-INSTALL APLICATIONS WITH HELM"><h2 id="INSTALL APLICATIONS WITH HELM" class="header"><a href="#WEEK 4-INSTALL APLICATIONS WITH HELM">INSTALL APLICATIONS WITH HELM</a></h2></div>
+<ul>
+<li>
+"One-click" Install
+
+<ul>
+<li>
+Many times no extra config is necessary
+
+</ul>
+</ul>
+
+<div id="WEEK 5"><h1 id="WEEK 5" class="header"><a href="#WEEK 5">WEEK 5</a></h1></div>
+<div id="WEEK 5-RANCHER LOGGING"><h2 id="RANCHER LOGGING" class="header"><a href="#WEEK 5-RANCHER LOGGING">RANCHER LOGGING</a></h2></div>
+<ul>
+<li>
+Logging allows the admin to:
+
+<ul>
+<li>
+Capture and analyze <em>the state of the cluster</em>
+
+<li>
+Save the logs to a safe location
+
+<li>
+Stay informed of events like a container crashing, a pod eviction, or a node dying
+
+<li>
+More easily debug and troubleshoot problems
+
+</ul>
+</ul>
+
+<div id="WEEK 5-NOTIFIERS AND ALERTS"><h2 id="NOTIFIERS AND ALERTS" class="header"><a href="#WEEK 5-NOTIFIERS AND ALERTS">NOTIFIERS AND ALERTS</a></h2></div>
+<ul>
+<li>
+Notifiers are services that inform about alert events
+
+<ul>
+<li>
+Configures where to send
+
+<li>
+Configured at cluster level
+
+</ul>
+<li>
+Alerts are rules that trigger notifications
+
+<ul>
+<li>
+Notifiers must be already configured to handle the alerts
+
+</ul>
+</ul>
+
+<p>
+Cluster Explorer -&gt; Apps &amp; Marketplace -&gt; Logging -&gt; Install
+</p>
+
+<div id="WEEK 5-LOGGING ARCHITECTURE"><h2 id="LOGGING ARCHITECTURE" class="header"><a href="#WEEK 5-LOGGING ARCHITECTURE">LOGGING ARCHITECTURE</a></h2></div>
+<ul>
+<li>
+Uses Banzai Cloud logging operator
+
+<li>
+Provides fine-grained logging for admins and users
+
+<li>
+Ability to write logs to <em>multiple outputs</em>
+
+<li>
+Lots of config options
+
+<li>
+Log filtering
+
+</ul>
+
+<p>
+Logging Menu Item -&gt; Helm adds a new option under Cluster Explorer main view
+</p>
+
+<div id="WEEK 5-DEPLOY MONITORING STACK"><h2 id="DEPLOY MONITORING STACK" class="header"><a href="#WEEK 5-DEPLOY MONITORING STACK">DEPLOY MONITORING STACK</a></h2></div>
+<ul>
+<li>
+The stack consists of Prometheus / Grafana / Alertmanager
+
+<li>
+Prometheus allows the admin to:
+
+<ul>
+<li>
+Monitor the state and processes of the cluster nodes, k8s components and software deployments
+
+<li>
+Collect precomputed time series based on metrics
+
+<li>
+Define alerts based on the collected metrics
+
+</ul>
+<li>
+Grafana allows the admin to:
+
+<ul>
+<li>
+See the current state or collected metrics as graphical representation
+
+<li>
+Create custom dashboards to suit the needs
+
+</ul>
+</ul>
+
+<p>
+To enable: Apps &amp; Marketplace -&gt; "Monitoring" -&gt; Deploy
+! By default, data is stored <em>locally in the cluster</em> which means that persistent storage is NOT configured by default
+</p>
+
+<p>
+! This seems to be important for our purposes
+</p>
+
+<div id="WEEK 5-MANAGE CIS SCANS"><h2 id="MANAGE CIS SCANS" class="header"><a href="#WEEK 5-MANAGE CIS SCANS">MANAGE CIS SCANS</a></h2></div>
+<p>
+CIS -&gt; Center for Internet Security a non-profit org.
+Mission: identify, develop, validate, promote, and sustain best practice solutions for cyber defense
+</p>
+
+<p>
+Apps &amp; Marketplace -&gt; CIS Benchmark -&gt; Deploy
+</p>
+
+<p>
+There are two types of RKE cluster scan profiles:
+</p>
+<ul>
+<li>
+Permissive
+
+<li>
+Hardened
+
+</ul>
+
+<div id="WEEK 6"><h1 id="WEEK 6" class="header"><a href="#WEEK 6">WEEK 6</a></h1></div>
+<div id="WEEK 6-ACCESS THE CLUSTER NODES WITH SSH"><h2 id="ACCESS THE CLUSTER NODES WITH SSH" class="header"><a href="#WEEK 6-ACCESS THE CLUSTER NODES WITH SSH">ACCESS THE CLUSTER NODES WITH SSH</a></h2></div>
+<ul>
+<li>
+Depends on how the cluster was deployed/provisioned
+
+<ul>
+<li>
+Registered Clusters
+
+<ul>
+<li>
+Uses the existing SSH config
+
+</ul>
+<li>
+Rancher provisioned clusters
+
+<ul>
+<li>
+Rancher allows containerized "shell access" from the UI
+
+</ul>
+<li>
+Infrastructure provider hosted clusters
+
+<ul>
+<li>
+Allows SSh keys to be downloaded from Rancher UI
+
+<li>
+With Rancher CLI using "rancher ssh sub-command"
+
+</ul>
+<li>
+Cloud provisioned clusters
+
+<ul>
+<li>
+Must configure SSH keys at the time of the provisioning
+
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 6-DOWNLOAD SSH KEYS"><h2 id="DOWNLOAD SSH KEYS" class="header"><a href="#WEEK 6-DOWNLOAD SSH KEYS">DOWNLOAD SSH KEYS</a></h2></div>
+<ul>
+<li>
+For nodes residing at infrastructure provider
+
+<ul>
+<li>
+Select <em>Nodes</em> for a cluster from the main menu
+
+<li>
+Find the node to create a remote connection for
+
+<li>
+Select triple dots -&gt; Download Keys
+
+<li>
+Extract the archive -&gt; ssh -i id_rsa root@&lt;IP_OF_HOST&gt;
+
+</ul>
+</ul>
+
+<div id="WEEK 6-CONTAINER SSH ACCESS"><h2 id="CONTAINER SSH ACCESS" class="header"><a href="#WEEK 6-CONTAINER SSH ACCESS">CONTAINER SSH ACCESS</a></h2></div>
+<ul>
+<li>
+Containers can be accessed from Rancher
+
+<ul>
+<li>
+Triple Dots -&gt; <em>Execute Shell</em>
+
+</ul>
+<li>
+Used for troubleshooting (reading logs/checking the config)
+
+<li>
+Do not change anything
+
+<ul>
+<li>
+Containers are <em>ephemeral</em>
+
+</ul>
+</ul>
+
+<div id="WEEK 6-ACCESS A DOWNSTREAM CLUSTER"><h2 id="ACCESS A DOWNSTREAM CLUSTER" class="header"><a href="#WEEK 6-ACCESS A DOWNSTREAM CLUSTER">ACCESS A DOWNSTREAM CLUSTER</a></h2></div>
+<p>
+kubectl Shell from Rancher
+Global cluster view -&gt; Launch kubectl
+Global cluster view -&gt; Download kubeconfig file
+</p>
+
+<div id="WEEK 6-RANCHER AUTHENTICATION PROXY"><h2 id="RANCHER AUTHENTICATION PROXY" class="header"><a href="#WEEK 6-RANCHER AUTHENTICATION PROXY">RANCHER AUTHENTICATION PROXY</a></h2></div>
+<ul>
+<li>
+Access with Rancher UI and kubectl happens via RAP
+
+<li>
+No access available, if Rancher server is down or in-accessible
+
+<li>
+Possible latency in access, if the target cluster and RAP are geographically distant from each other
+
+<li>
+Authorized Cluster Endpoint allows access to K8s API without routing the requests through RAP
+
+</ul>
+
+<div id="WEEK 6-AUTHORIZED CLUSTER ENDPOINTS"><h2 id="AUTHORIZED CLUSTER ENDPOINTS" class="header"><a href="#WEEK 6-AUTHORIZED CLUSTER ENDPOINTS">AUTHORIZED CLUSTER ENDPOINTS</a></h2></div>
+<ul>
+<li>
+ACE is enabled by default for RKE clusters
+
+<li>
+Only available for Rancher-launched k8s clusters
+
+<li>
+Edit the cluster to enable/disable
+
+<li>
+Enabling ACE creates a context
+
+</ul>
+
+<p>
+Cluster Manager -&gt; Edit -&gt; Authorized Endpoint
+</p>
+
+<div id="WEEK 6-RANCHER CLI"><h2 id="RANCHER CLI" class="header"><a href="#WEEK 6-RANCHER CLI">RANCHER CLI</a></h2></div>
+<ul>
+<li>
+The CLI is a binary file to
+
+<ul>
+<li>
+Interact directly with clusters from command line
+
+<li>
+Pass <em>kubectl</em> commands to the clusters
+
+</ul>
+<li>
+Downloadable from the bottom right corner of Rancher UI
+
+</ul>
+
+<div id="WEEK 7"><h1 id="WEEK 7" class="header"><a href="#WEEK 7">WEEK 7</a></h1></div>
+<div id="WEEK 7-BACKUP AND RESTORE WITH RANCHER"><h2 id="BACKUP AND RESTORE WITH RANCHER" class="header"><a href="#WEEK 7-BACKUP AND RESTORE WITH RANCHER">BACKUP AND RESTORE WITH RANCHER</a></h2></div>
+<div id="WEEK 7-BACKING UP WITH RANCHER"><h2 id="BACKING UP WITH RANCHER" class="header"><a href="#WEEK 7-BACKING UP WITH RANCHER">BACKING UP WITH RANCHER</a></h2></div>
+<ul>
+<li>
+Backups are required for
+
+<ul>
+<li>
+Rancher-deployed downstream RKE clusters
+
+<li>
+Rancher server itself
+
+</ul>
+<li>
+Rancher-deployed RKE clusters have an in-place snapshot utility available
+
+<li>
+Rancher has a separate backup utility Rancher backups
+
+<ul>
+<li>
+Installed with Helm chart on the Rancher cluster
+
+<li>
+Backups are run from the Rancher Cluster Explorer
+
+</ul>
+</ul>
+
+<div id="WEEK 7-CREATE DOWNSTREAM CLUSTER SNAPSHOTS"><h2 id="CREATE DOWNSTREAM CLUSTER SNAPSHOTS" class="header"><a href="#WEEK 7-CREATE DOWNSTREAM CLUSTER SNAPSHOTS">CREATE DOWNSTREAM CLUSTER SNAPSHOTS</a></h2></div>
+<ul>
+<li>
+Rancher snapshot backs up etcd, k8s version, and the cluster config
+
+<li>
+Snapshots can be
+
+<ul>
+<li>
+Recurring
+
+<li>
+Manual
+
+</ul>
+</ul>
+
+<div id="WEEK 7-SNAPSHOT FILE LOCATION"><h2 id="SNAPSHOT FILE LOCATION" class="header"><a href="#WEEK 7-SNAPSHOT FILE LOCATION">SNAPSHOT FILE LOCATION</a></h2></div>
+<ul>
+<li>
+Local on the control plane node (default)
+
+<li>
+S3 Bucket
+
+<li>
+Location is configured at registration/provisioning time
+
+</ul>
+
+<div id="WEEK 7-SNAPSHOT BASICS"><h2 id="SNAPSHOT BASICS" class="header"><a href="#WEEK 7-SNAPSHOT BASICS">SNAPSHOT BASICS</a></h2></div>
+<ul>
+<li>
+Manual snapshots are easy to run from the Rancher UI
+
+<li>
+Recurring etcd snapshots for all prod. clusters are <em>recommended</em>
+
+<li>
+Always create a snapshot before making significant changes to the cluster, such as upgrading the k8s version on it
+
+<li>
+Rancher snapshot includes
+
+<ul>
+<li>
+Cluster data in etcd
+
+<li>
+k8s version
+
+<li>
+Cluster config in the form of the cluster.yml
+
+</ul>
+</ul>
+
+<div id="WEEK 7-SNAPSHOT CREATION"><h2 id="SNAPSHOT CREATION" class="header"><a href="#WEEK 7-SNAPSHOT CREATION">SNAPSHOT CREATION</a></h2></div>
+<p>
+Cluster actions menu -&gt; Snapshot Now
+</p>
+
+<div id="WEEK 7-SNAPSHOT FILES"><h2 id="SNAPSHOT FILES" class="header"><a href="#WEEK 7-SNAPSHOT FILES">SNAPSHOT FILES</a></h2></div>
+<ul>
+<li>
+Rancher automatically names the snapshot files
+
+<li>
+Naming is based on type
+
+<ul>
+<li>
+Recurring or manual
+
+<li>
+Naming conventions
+
+<ul>
+<li>
+m manual
+
+<li>
+r recurring
+
+<li>
+l local
+
+<li>
+s s3
+
+</ul>
+</ul>
+</ul>
+
+<div id="WEEK 7-UPGRADING DOWNSTREAM CLUSTERS"><h2 id="UPGRADING DOWNSTREAM CLUSTERS" class="header"><a href="#WEEK 7-UPGRADING DOWNSTREAM CLUSTERS">UPGRADING DOWNSTREAM CLUSTERS</a></h2></div>
+<p>
+Global view -&gt; <em>Edit</em> the cluster -&gt; K8s Version dropdown list -&gt; Select the version to upgrade to
+</p>
+
+<div id="WEEK 7-ZERO DOWNTIME UPGRADE"><h2 id="ZERO DOWNTIME UPGRADE" class="header"><a href="#WEEK 7-ZERO DOWNTIME UPGRADE">ZERO DOWNTIME UPGRADE</a></h2></div>
+<ul>
+<li>
+Rancher cluster upgrade starts
+
+<li>
+Zero downtime
+
+<ul>
+<li>
+K8s API is available during the entire process
+
+<li>
+CI/CD workflows are enabled to function throughout the upgrade
+
+<li>
+Nodes will be cordoned (and drained) before upgrading
+
+<li>
+Users workloads keep serving traffic without interruption by rolling updates
+
+<li>
+Nodes will be masked as upgraded only after all components have started
+
+</ul>
+</ul>
+
+<p>
+Upgrade Process:
+Phase 1 -&gt; etcd
+Phase 2 -&gt; control nodes
+Phase 3 -&gt; etcd
+Phase 4 -&gt; worker nodes and addons
+</p>
+
+<div id="WEEK 7-UPGRADE PROBLEMS"><h2 id="UPGRADE PROBLEMS" class="header"><a href="#WEEK 7-UPGRADE PROBLEMS">UPGRADE PROBLEMS</a></h2></div>
+<ul>
+<li>
+Upgrade will not proceed if the number of unavailable nodes exceeds the configured maximum
+
+<li>
+If an upgrade stops, unavailable node needs to be fixed or removed from the cluster before the upgrade can continue
+
+<li>
+Reasons for node upgrade failures
+
+<ul>
+<li>
+Node is powered off
+
+<li>
+Node is unavailable
+
+<li>
+User draining a node while upgrade is in process
+
+<li>
+The upgrade itself fails
+
+</ul>
+</ul>
+
+<div id="WEEK 7-RESTORE DOWNSTREAM CLUSTERS"><h2 id="RESTORE DOWNSTREAM CLUSTERS" class="header"><a href="#WEEK 7-RESTORE DOWNSTREAM CLUSTERS">RESTORE DOWNSTREAM CLUSTERS</a></h2></div>
+<p>
+Before starting, <em>backup the cluster!</em>
+Cluster actions menu -&gt; <em>Restore snapshot</em>
+Available snapshots -&gt; Restoration Type
+</p>
+<ul>
+<li>
+etcd
+
+<li>
+etcd and k8s version
+
+<li>
+etcd, k8s version and cluster config
+
+</ul>
+
+<div id="WEEK 7-RESTORE PROCESS"><h2 id="RESTORE PROCESS" class="header"><a href="#WEEK 7-RESTORE PROCESS">RESTORE PROCESS</a></h2></div>
+<p>
+Cluster details page displays process info
+</p>
+<ul>
+<li>
+Snapshot is retrieved from s3 or local
+
+<li>
+Snapshot is unzipped
+
+<li>
+One of the etcd nodes in the cluster serves the snapshot file to the others
+
+<li>
+The other etcd nodes download the snapshot and validate the checksum
+
+<li>
+The cluster is restored and post-restore actions will be done in the cluster
+
+</ul>
+
+<div id="WEEK 7-BACKUP AND RESTORE THE RANCHER SERVER"><h2 id="BACKUP AND RESTORE THE RANCHER SERVER" class="header"><a href="#WEEK 7-BACKUP AND RESTORE THE RANCHER SERVER">BACKUP AND RESTORE THE RANCHER SERVER</a></h2></div>
+<p>
+Rancher Server backups are managed by <em>Helm</em> deployed <span id="WEEK 7-BACKUP AND RESTORE THE RANCHER SERVER-Rancher Backups"></span><strong id="Rancher Backups">Rancher Backups</strong> application
+</p>
+<ul>
+<li>
+Backup and restore are run from <em>Cluster Explorer</em>
+
+</ul>
+
+</body>
+</html>

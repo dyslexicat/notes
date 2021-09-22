@@ -1,0 +1,270 @@
+= KUBERNETES =
+=== Advantages ===
+- Highly available, HW failures are not critical since we have multiple instances
+- Load balanced
+  - When demand increases we deploy more instances
+- When we run _out of HW resources_ we can scale up or down
+
+=== Architecture ===
+- A _node_ is a machine, _physical or virtual_, on which k8s is installed
+- A node is a _worker machine_ where containers will be launched by k8s
+- A _cluster_ is a set of nodes grouped together
+- The _master node_ is responsible for managing the cluster
+  - Responsible for _orchestration_
+- When you install k8s you actually install:
+  - API Server:
+    - Frontend for k8s services
+  - etcd:
+    - a _distributed reliable key-value store_
+    - stores all data used to manage the cluster
+  - Scheduler:
+    - responsible for _distributing work or containers_ across multiple nodes
+  - Controller:
+    - responsible for _noticing and responding_ when nodes, containers or endpoints _GO DOWN_
+    - makes decision to bring up new containers
+  - Container Runtime:
+    - underlying software that is used to run containers
+    - in this case _Docker_
+  - kubelet:
+    - the _agent_ that runs in _each node_ in the cluster
+    - responsible for making sure that the containers are running on nodes _as expected_
+
+How are these components distributed across different types of servers?
+How does one server become a master and the other a slave?
+- The _worker node_ is where the containers are _HOSTED_
+  - This means that it needs to have the _container runtime_ on it
+  - They also have the _kubelet agent_ that is responsible for interacting with a master
+- The _master server_:
+  - has the kube API server and that is what makes it a master
+  - all the information gathered is stored in a key-value store so it has _etcd_
+  - also have _controller_ and _scheduler_
+
+_kubectl_:
+  - used to _deploy_ and _manage_ apps on k8s a cluster
+  - also to get cluster information, to get the status of other nodes in the cluster and to manage other things
+    - kubectl run <NODE_NAME>
+    - kubectl cluster-info
+    - kubectl get nodes
+    - kubectl describe pod <POD_NAME>
+
+== KUBERNETES SETUP ==
+=== Local Solutions ===
+- kubeadm
+- microk8s
+- minikube
+
+minikube _bundles_ together all the components of a working k8s cluster
+you still need _kubectl_ utility installed when working with these solutions
+
+=== On the Cloud ===
+- GKE / Amazon EKS / Azure AKS
+
+== KUBERNETES CONCEPTS ==
+=== PODS ===
+- K8s _DOES NOT_ deploy containers directly on the worker nodes
+- The containers are encapsulated in _pods_
+- def. A _pod_ is a single instance of an application
+  - it is the smallest object you can create in k8s
+- when the load we receive for our app increases k8s spin up new _pods_ instead of creating a new container inside a pod
+- these pods might be on the _same node_
+- if there is still increasing load k8s can add _new workers_ with pods to the cluster
+- pods usually have a _one-to-one_ relationship with containers running your app
+
+=== MULTI-CONTAINER PODS ===
+- these are _possible_ however instead of having multiple copies of the same container _multi-pod scenarios_ involve _helper containers_
+- the two containers in such a case can communicate with one another referring to localhost since they are on the same network space
+- they can also share the same storage space
+- multi-pod containers are a _rare occurrence_
+
+== PODS WITH YAML ==
+- k8s uses _YAML files_ for the creation of objects such as _Pods, replicas, deployment services, etc._
+- a k8s definition file always contains _FOUR top level fields_:
+  - apiVersion
+    - the version of the k8s api you are using to create the objects
+  - kind
+    - type of object you are trying to create
+  - metadata
+    - data about the object
+    - name, labels, etc.
+  - spec
+    - additional information to k8s pertaining to the object we want to create
+    - refer to the documentation
+
+TIP: "kubectl run redis --image=redis --dry-run=client -o yaml > pod.yml" will _CREATE_ a yaml file and _NOT CREATE_ the pod itself
+TIP: if you just edit a running pod information with "kubectl edit" the changes will apply immediately
+
+== KUBERNETES CONTROLLERS AND REPLICA SETS ==
+- _Replication Controller_ helps us run multiple instances of a single pod in the k8s cluster
+  - provides _high availability_
+    - even if you have a single pod replication controller can help by _ensuring the specified number of pods is always up_ even if our pod fails
+  - another reason is _load balancing & scaling_
+    - creates _nodes and pods_ according to the demand our application is facing
+
+_Replication controller_ is the older technology that is being replaced by Replica Sets
+How do we create a _replication controller_?
+- create a yaml file!
+- inside the spec we flesh out a _template for a pod_
+- the template is basically the _metadata and spec_ parts of a pod-definition.yml
+- finally you need to specify the _number of replicas_ and we do that by creating a "replicas" field under the _spec_ part of our yaml file
+
+_Replica Set_:
+- You need "apiVersion: apps/v1" in your yaml file
+- the rest is basically the same but you need a _selector_ field underneath the "spec"
+- but why do we need the selector?
+  - a replicaset can also manage pods _that were not created as part of the replicaset creation_
+- selector:
+    matchLabels:
+      type: front-end
+
+=== SCALING ===
+- You can just update the _replicas_ part of the yaml file
+- 2nd way: "kubectl scale --replicas=<NUMBER> -f <YAML_FILE>"
+- 3rd way: "kubectl scale --replicas=<NUMBER> <TYPE> <NAME>" (kubectl scale --replicas=6 replicaset myapp-replicaset)
+
+COMMANDS:
+- kubectl create -f replicaset_def.yml
+- kubectl get replicaset
+- kubectl delete replicaset myapp-replicaset
+- kubectl replace -f replicaset_def.yml
+- kubectl scale -replicas=6 -f replicaset_def.yml
+
+== DEPLOYMENT ==
+- _Rolling updates_ instead of upgrading all of our application containers at once we _SLOWLY_ update so our users don't get impacted by breaking changes
+- _Rollback_ undoing the update process back to a _working state_
+- _Deployment_ is a k8s object that comes higher in the hierarchy than Replica Sets
+  - they give us the _capability_ to upgrade the underlying instances seamlessly using rolling updates
+  - also pause and resume updates
+- we create a yaml file
+- similar to a ReplicaSet except this time the "kind" value will be _"Deployment"_
+
+COMMANDS:
+- kubectl get all
+  - shows information about created objects
+
+== UPDATES AND ROLLBACKS ==
+- Updates trigger new _rollouts_ with incremented _DEPLOYMENT REVISIONS_
+- If our deployment revision 1 has nginx 1.7, and our containers update their nginx version to 1.7.1
+  - Deployment revision 2 is _rolled out_
+- "kubectl rollout status <DEPLOYMENT_NAME>" shows the rollout status
+- "kubectl rollout history <DEPLOYMENT_NAME>" shows the revisions and history of our deployment
+- *Two types* of _rollout strategies_:
+  1. _Recreate strategy_: We can destroy our old containers and create new instances -> _APPLICATION HAS DOWNTIME_
+  2. _Rolling update_ (default strategy): Take down old versions and bring up newer ones _ONE BY ONE_ -> _NO DOWNTIME_
+
+=== HOW DO YOU UPDATE? ===
+- Make the changes to your _yaml file_ then run "kubectl apply -f <YAML_FILE>"
+- You can also use "kubectl set image <DEPLOYMENT_NAME> <IMAGE_NAME>=<IMAGE_VER>"
+
+=== UPGRADES ===
+- The _deployment_ object creates a new _REPLICA SET_ then starts creating new pods and taking down pods from the old replica set
+
+=== ROLLBACKS ===
+- "kubectl rollout undo <DEPLOYMENT_NAME>"
+- Destroys pods from the new replica set and creates the ones from the old replica set
+
+TIP: "--record" flag records what command has been used to the _history_
+
+== NETWORKING IN K8S ==
+- _IP addresses are assigned to PODS_ not containers
+- Nodes have their own internal IP addresses
+- How does this work?
+  - When k8s is initially configured we create an _internal private network_ with the address 10.244.0.0 and all the pods are attached to it
+  - When you deploy multiple pods they get separate IPs from this private network
+  - Accessing pods through this internal IP is not _RECOMMENDED_ since these are *subject to change* while new pods are created or old ones destroyed
+
+=== CLUSTER NETWORKING ===
+- Each node has their own IP address
+  - When pods are initially created they might have the same internal IP address eg. 10.244.0.2
+  - This becomes a problem when we create a _cluster_ with these nodes
+- k8s does not automatically handle _cluster networking_ problems
+- k8s _EXPECTS US_ to *setup certain fundamental requirements*:
+  - All containers/pods _must be able to communicate_ to one another *WITHOUT NAT*
+  - All nodes _must be able to communicate_ with all containers and vice-versa *WITHOUT NAT*
+- We don't have to set this up ourselves since there are multiple _PRE-BUILT solutions_ exist
+- These solutions:
+  - manages the network and IPs in our nodes and assign a _different_ network address for each network in the node
+  - this creates a virtual network of all pods and nodes where they are all assigned unique IP addresses
+  - and _by using simple routing techniques_, the cluster networking enables communication between different pods or nodes to meet the networking reqs. of k8s
+
+== SERVICES ==
+- k8s services _enable communication between various components within and outside of the application_
+- example:
+  - services enabled the frontend app to be made available for our end-users
+  - they help communication b/w frontend and backend pods
+  - helps establishing connectivity to an _external data source_
+- services _enable loose coupling between microservices in our app_
+- In our yaml file, we need the "kind" to be _Service_
+
+=== EXAMPLE ===
+- Let's say we want to access a web app running inside a pod:
+  - User laptop IP: 192.168.1.10
+  - Node IP: 192.168.1.2 (Same network as our Laptop)
+  - Pod IP: 10.244.0.2 (in a different network)
+- One option is to SSH into the node and then access directly to the pod IP
+- However, we want to access the app from _outside the node_
+- _We need something to map our request to the node from the laptop through the node to the pod running the web container_
+  - Answer -> *k8s service*
+- Especially, a _NodePort service_
+  - Listens to a port and forward requests to relevant pods
+
+== SERVICE TYPES ==
+1. NodePort
+2. ClusterIP
+3. LoadBalancer
+
+=== NodePort ===
+- Three ports are involved:
+  - The port on the pod where the web server is running; referred as the _target port_
+  - Port on the _service itself_; referred as the _port_
+  - Port on the _node itself_ which we use to access the web server externally; called the _node port_
+    - _Node port_ can be in the range of 30000-32767
+- The service is like a _virtual server_, inside the node. Inside the cluster, it has its own IP address called _the cluster IP of the service_
+- We create one with a _yaml file_
+- Similarly to replicasets, we use a _"selector"_ to connect our NodePort to a specific pod
+- What do you do when you have multiple pods in a production environment?
+  - As long as, all our pods have a _matching label_ with our selector, the NodePort service will handle things correctly
+- What happens if our pods are distributed across multiple nodes?
+  - k8s creates a service that _spans across all the nodes in the cluster_ and maps the target port to the same node port
+
+=== ClusterIP ===
+- Imagine our app setup as the following: frontend/backend/redis
+  - All our pods in the frontend need to establish communication with the backend and all the backend pods need to communicate with the redis pods
+  - We know that _the pods are not static_ they CAN be destroyed or created at will with _different IP addresses_
+- ClusterIP can help us _group together_ all these different pods for a service and _provide a single interface_ for other pods to access this service
+- Each layer can now _scale or move as required_ without impacting communication
+- created with a _yaml file_...
+- You need to specify a port and a target port then match using a _selector_
+
+=== LoadBalancer ===
+- k8s has _support for integrating with the native load balancers of cloud platforms_
+- this only works on _supported platforms_
+- After setting it up we can use the LoadBalancer to give our users a _single way_ to access our app and the load balancer directs traffic to relevant pods depending on the load
+
+== MICROSERVICES ==
+- Same voting-app example (cats vs dogs)
+- voting-app (frontend) / result-app (frontend) / redis / worker (to get results from redis and write to persistent storage) / PostgreSQL
+- Goals:
+  1. Deploy containers
+  2. Enable connectivity
+  3. Enable external access
+- Steps:
+  1. Deploy Pods, ReplicaSets or Deployments
+  2. Create _Services_ (ClusterIP)
+    - redis
+    - db
+  3. Create _Services_ (NodePort)
+    - voting-app
+    - result-app
+
+== KUBERNETES ON CLOUD ==
+- Self-Hosted / Turnkey Solutions
+  - You provision VMs
+  - You configure VMs
+  - You use scripts to deploy the cluster
+  - You maintain VMs yourself
+- Hosted (Managed) Solutions
+  - K8s-as-a-Service
+  - Provider provisions VMs
+  - Provider installs k8s
+  - Provider maintains VMs
+  - In these environments, you mostly _DON'T_ have access to the master nodes or VMs

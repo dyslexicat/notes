@@ -1,0 +1,302 @@
+= WHY DO YOU NEED DOCKER =
+- Dependency management
+- OS versioning for different components of an app/service
+- Long set up time for new engineers
+- Compatibility/Dependency
+- Different dev/test/prod environments
+- Each component separated into a container with its own libs/dependencies
+
+= WHAT ARE CONTAINERS =
+- They are completely separated environments
+- Own process, networks, mounts
+- They share the same _OS kernel_
+- Containers are not a new idea
+- Docker uses _LXC containers_
+- High-level tool with powerful functionalities for end-users
+- Main purpose:
+  - Package, and containerize applications, and to ship and run them anytime anywhere as many times as you want
+
+= CONTAINERS VS VIRTUAL MACHINES =
+- With VMs we have a _hypervisor_ and then virtual machines with their own OS
+- With containers we have the same OS kernel on top of the hardware, and Docker shares this OS kernel with different containers
+- Containers:
+  - Lightweight in size
+  - Resource utilization is less than VMs
+  - Fast boot up times
+- It is not an either or situation
+- With large docker containers we have virtual Docker hosts to separate containers from each other
+
+= BASIC DOCKER COMMANDS =
+_run_ - starts a container
+ex. docker run nginx
+
+if the image doesn't exist _locally_ it pulls from docker hub for the first time
+
+_ps_ - list containers
+ex. docker ps [-a]
+-a also show stopped containers
+
+_stop_ - stop a container
+_rm_ - remove a container
+_images_ - list images
+_rmi_ - remove images
+you need to ensure no running containers exist depending on this image
+
+_pull_ - download an image
+
+Containers are meant to run a specific task or process such as to host an instance of a web server or app server or a DB or simply to carry some kind of computation or analysis task
+
+Once the task is over the container _EXITS_. It lives as long as the process inside of it.
+
+They are NOT full VMs
+
+append a command
+"docker run ubuntu sleep 5" is _POSSIBLE_
+
+_exec_ - execute a command
+"docker exec <CONTAINER_NAME> cat /etc/hosts"
+
+run - attach and detach
+default mode is _attach_
+use "-d" flag to run in the detached mode
+"docker attach <NAME_OR_ID>"
+
+! You can just use the first few characters of the container ID
+
+= DOCKER RUN IN-DEPTH =
+docker run name:tag
+if no tag is specified docker uses _"latest"_ as the tag
+
+-i maps the STDIN of your host to the container / _interactive mode_
+-t stands for pseudo-terminal
+
+== PORT MAPPING ==
+Every docker gets an IP
+But we use the IP of the _host machine_ since the container IP is only accessible internally
+-p HOST:CONTAINER -> maps the relevant container port to the host machine
+
+== VOLUME MAPPING ==
+-v HOST:CONTAINER -> maps the relevant container volume to the host machine
+
+== INSPECT CONTAINER ==
+"docker inspect CONTAINER_NAME" -> gives more detailed info about a container in JSON format
+
+== CONTAINER LOGS ==
+"docker logs CONTAINER_NAME" -> inspect logs of a container
+
+= CREATING YOUR OWN IMAGE =
+- Write down all the steps
+- Create a _Dockerfile_ with the instructions in it
+- -t is used for both naming and tagging
+- "docker build -t <NAME:TAG> ."
+- To make it available in Docker Hub Registry -> push it
+- "docker push <YOUR_TAG>"
+
+= LAYERED ARCHITECTURE =
+- Each line of instruction creates a new layer
+- "docker history <TAG>" shows the creation of each layer and detailed info
+- All the layers built are _cached_ by Docker
+- If there is a _FAILURE_ when you re-run the build command Docker uses the first layers from the cache
+- This is also true for _ADDING_ new layers
+
+= ENVIRONMENT VARIABLES =
+-e <ENV_VAR>=<VALUE>
+- To find out which env variables are set -> _docker inspect_
+
+= COMMANDS VS ENTRYPOINTS =
+- Entrypoint instruction is like the command instruction
+- Whatever you specify on the command line will get _APPENDED_ to the entrypoint
+- "docker run ubuntu-sleeper 10" with an ENTRYPOINT ["sleep"] will run "sleep 10" after the container starts
+- To sum up, with CMD the CLI parameters will be _REPLACED_ entirely but with ENTRYPOINT they will be _APPENDED_
+- You can give a _default_ value for the entrypoint by also specifying a CMD setting inside the Dockerfile
+- You can _OVERRIDE_ the entrypoint at startup with the "--entrypoint" flag
+
+= DOCKER COMPOSE =
+- If we need to setup a complex app with multiple services a better way is to use _docker compose_ instead of running containers one by one
+- Configuration file in YAML format
+- "docker-compose up"
+
+== LINKS ==
+- "--link <name or id>:alias" is used to link different containers
+- "--link redis:redis" for example is used to link a redis container with the name redis
+- It creates an entry into the "/etc/hosts" file on the container with the internal IP of the redis container
+- Using links in this way is _DEPRECATED_
+
+== DOCKER COMPOSE ==
+- create a _docker-compose.yml_ file
+- create a dictionary of container names
+- under each item -> specify which _image_ to use
+- if there are any other options (such as port mappings) add those
+- finally, for whichever container needs a _link_ create "links" key with the appropriate value
+- if no value is present docker uses the key as the value
+- then use _"docker-compose up"_
+
+! If any images are not already _built and available_, we need to use "build" instead of "image" in our YAML file
+
+- "build" line will have an application directory with a Dockerfile inside of it
+
+! There are different "docker-compose.yml" versions
+
+- Version 1 -> DB should come first
+- Version 2 -> you have a _services_ section at the root of the file
+- Version 2 and up -> must specify version you are using
+- Version 1 -> docker-compose attaches all the containers it runs to the default bridged network and then use links between the containers
+- Version 2 -> automatically creates a dedicated bridged network and attaches all containers there, all containers able to communicate using each other's names (so you DO NOT need _links_)
+- Version 2 -> there is a _"depends on"_ property so we don't need to specify services in a specific order
+- Version 2 -> _"networks"_ proprty: you can separate networks into _backend_ and _frontend_ to run on separate networks
+- You would have to put some frontend services under both networks since they need to communicate with the backend
+
+= DOCKER ENGINE =
+- When you install Docker on a linux host you actually install _3 components_
+  - Docker Daemon
+  - REST API server
+  - Docker CLI
+- The docker engine can be _REMOTE_
+- You can use the "-H" flag to specify a remote docker host
+
+== CONTAINERIZATION ==
+- Docker uses _NAMESPACES_ to isolate workspace, process IDs, network, interprocess communication, mounts and unix time sharing systems
+- This provides _ISOLATION BETWEEN CONTAINERS_
+- The processes running inside the container are in fact processes running on the underlying host
+- Two processes cannot have the same process ID of 1
+- Container gets its own root process tree with PID 1
+
+== CGROUPS (control groups) ==
+- How much of the resources are dedicated to the host and the containers?
+- How does Docker manage and share the resources between the containers?
+- By default, there is _NO RESTRICTION_ as to how much of a resource a container can use
+- There is a way to _RESTRICT_ the amount of CPU and memory a container can use:
+  - cgroups
+- "--cpu" option when running a _docker run_ command
+  - --cpu=.5 -> 50% of host cpu
+- "--memory" option for memory
+  - --memory=100m -> 100mb
+
+= DOCKER STORAGE =
+- /var/lib/docker -> where Docker stores data by _default_
+- After a container is built, image layers are _READ ONLY_
+- Container layer is the _writable layer_ -> read/write
+- When the container is destroyed this layer is also destroyed
+
+== COPY-ON WRITE ==
+- When we need to make changes to the source code, Docker creates a copy of the source code and our changes live on the _container layer_
+
+== VOLUMES ==
+- If we wish to persist data we _need to add a persistent volume_
+- docker volume create <dir_name>
+- We can _MOUNT_ this volume with the "-v" flag
+- ex. "docker run -v data_volume:/var/lib/mysql mysql"
+- What if you _DID NOT_  create the folder for the volume before running the command?
+  - Docker automatically creates the folder before mounting it
+- We can also just mount a directory  where we want our data to live but _we need to specify the full path_
+
+The first is called _volume mounting_ and the second type is called _bind mounting_
+! This is the old way and the new _PREFERRED_ way is to use the _"--mount"_ option as it is more verbose
+
+- Who is responsible for doing all these operations?
+  - Maintaining a layered architecture
+  - Creating a writable layer moving files across layers to enable copy and write
+- The answer is _storage drivers_
+- AUFS, ZFS, BTRFS, Device Mapper, Overlay, Overlay2
+
+= DOCKER NETWORKING =
+- When you install Docker, _three networks are created by DEFAULT_
+  - Bridge
+  - null
+  - Host
+- Bridge is the _default network_ a container gets attached to
+- You can use the _"--network"_ parameter to change which network a container attaches itself
+- Bridge network is a _private, internal network_ on the host
+- Containers on this network usually get an IP in the range 172.17 series
+- Containers can reach each other with this IP
+- If you run a container on the _host network_:
+  - You take out any _NETWORK ISOLATION_ between the docker host and the container
+- This means you cannot run multiple containers with the same port
+- _Null network_ means that containers are _NOT_ attached to any network and _DOES NOT_ have any access to _external network_ or _other containers_
+
+== USER DEFINED NETWORKS ==
+- You can create your own internal network by:
+  - "docker network create --driver bridge --subnet 182.18.0.0/16 <NAME>"
+
+If you want to see info about the network:
+"docker inspect <NAME_OR_ID>"
+
+== EMBEDDED DNS ==
+- Use the container name when you try to reach other containers instead of its internal IP since it _CAN_ change
+- Docker has a built-in DNS server that helps the containers to resolve each other using their container name
+- How does this work?
+  - Network namespaces!
+
+To list all networks:
+"docker network ls"
+
+= DOCKER REGISTRY =
+- user_or_account_name/image_or_repo_name
+- for example -> nginx/nginx
+- but since they are both the same we can just use the image name to pull from the registry
+- default registry is _docker hub_ which is _docker.io_
+- Many cloud providers provide a _private registry by default_
+- "docker login <REGISTRY_NAME>" is how you _login_ to a _private registry_ before pulling or pushing from a private registry
+- You can also _DEPLOY_ your own private registry
+  - It can be found as a docker image
+
+= DOCKER ON WINDOWS AND MAC =
+== DOCKER ON WINDOWS ==
+- First option on Windows was to use _Docker Toolbox_
+  - This was basically installing a _Linux VM_ and then running Docker inside of it
+- Second option -> _Docker Desktop for Windows_
+  - This uses _Microsoft Hyper-V_ the native virtualization technology
+  - Creates a virtual Linux system but on Hyper-V
+- Both these options help you run Linux container on a Windows machine
+- Windows containers are possible since Windows Server 2016
+- You need to configure Docker to use _Windows containers_ instead of Linux ones
+
+- Two types of containers:
+  - Windows Server containers:
+    - Works exactly like Linux containers where the OS kernel is shared
+  - Hyper-V Isolation:
+    - Each container is run within a highly optimized virtual machine guaranteeing complete kernel isolation between the containers and the underlying host OS
+
+== DOCKER ON MAC ==
+- _Docker Toolbox_:
+  - Similar to the Windows option
+- _Docker Desktop for Mac_
+  - HyperKit virtualization technology
+- There are no Mac based images or containers; these technologies are both for running Linux containers on a Mac system
+
+= CONTAINER ORCHESTRATION =
+- Why orchestrate?
+  - Without orchestration, you would have to _monitor and keep a close watch_ on the situation and _deploy new machines MANUALLY_ to keep up with the load
+  - You also need to keep an eye on the _HEALTH_ of these containers and the host
+- Typically a container orchestration solution consists of _multiple Docker hosts_ that can host _containers_
+- "docker service create --replicas=100 nodejs" -> _Docker Swarm_
+
+== DOCKER SWARM ==
+- You can combine _multiple Docker machines_ together into a single cluster
+- You need a host or multiple hosts:
+  - Then you must _DESIGNATE_ one host to be the _manager_ and the others as _workers_
+  - "docker swarm init" -> run on manager
+  - "docker swarm join --token <TOKEN>" -> run on workers
+- _Docker services_ are one or more instances of a single app or service that runs across the nodes in the swarm cluster
+
+== KUBERNETES ==
+- K8s cluster consists of _a set of nodes_
+- A _node_ is a machine _physical or virtual_ on which a k8s software is installed
+- Even if a node _FAILS_ you can have your cluster working
+- The _master_ is a node with the k8s _CONTROL PLANE_ is installed
+- The API Server:
+  - The frontend for k8s - the user's management, devices, CLI
+- etcd:
+  - a _distributed, reliable_ key-value store used by k8s to store all data used to manage the cluster
+- scheduler:
+  - distributing work or containers across multiple nodes
+- controllers:
+  - makes decisions to bring up new containers
+- container runtime:
+  - the underlying software that is used to run containers
+  - in our case: _Docker_
+- kubelet:
+  - the agent that runs on each node in the cluster
+  - responsible for making sure that the containers are running on the nodes as expected
+
+"kubectl" is the command we use for k8s related things

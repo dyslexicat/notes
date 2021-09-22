@@ -1,0 +1,2910 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="Stylesheet" type="text/css" href="style.css">
+<title>Certified Kubernetes Administrator</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<div id="CORE CONCEPTS"><h1 id="CORE CONCEPTS" class="header"><a href="#CORE CONCEPTS">CORE CONCEPTS</a></h1></div>
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE"><h2 id="CLUSTER ARCHITECTURE" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE">CLUSTER ARCHITECTURE</a></h2></div>
+<ul>
+<li>
+Worker Nodes
+
+<ul>
+<li>
+Hosts applications in containers
+
+<li>
+kubelet:
+
+<ul>
+<li>
+captain of the ship
+
+<li>
+an <em>agent</em> that runs on each node in a cluster
+
+<li>
+listens for <em>instructions from the api-server</em> and <em>deploys or destroys</em> containers on the nodes as required
+
+</ul>
+<li>
+kubeproxy:
+
+<ul>
+<li>
+<em>communication between worker nodes</em> is enabled by this component
+
+</ul>
+<li>
+container runtime
+
+</ul>
+<li>
+Master Nodes
+
+<ul>
+<li>
+Manages and monitors workers
+
+<li>
+etcd:
+
+<ul>
+<li>
+a database that stores information in <em>key-value</em> format
+
+</ul>
+<li>
+scheduler:
+
+<ul>
+<li>
+identifies the right node to place a container on based on the resource reqs.
+
+</ul>
+<li>
+controller:
+
+<ul>
+<li>
+takes care of different areas between worker and master nodes:
+
+<ul>
+<li>
+node-controller
+
+<li>
+replication-controller
+
+<li>
+controller-manager
+
+</ul>
+</ul>
+<li>
+api-server:
+
+<ul>
+<li>
+the <em>primary management component</em> for k8s
+
+<li>
+responsible for <em>orchestrating all operations inside the cluster</em>
+
+<li>
+periodically fetches status reports from the <em>kubelet</em> to monitor the state of nodes
+
+</ul>
+<li>
+container runtime
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-ETCD"><h3 id="ETCD" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-ETCD">ETCD</a></h3></div>
+<ul>
+<li>
+a <em>reliable, distributed key-value store</em> that is <em>simple, secure and fast</em>
+
+<li>
+stores information about the <em>nodes, pods, configs, secrets, accounts, roles, bindings and other</em>
+
+<li>
+output of "kubectl" commands come from the <em>etcd server</em>
+
+<li>
+changes to our cluster happens through the <em>etcd server</em>
+
+<li>
+the <em>etcd server</em> is <span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-ETCD-CONFIGURED DIFFERENTLY"></span><strong id="CONFIGURED DIFFERENTLY">CONFIGURED DIFFERENTLY</strong> depending on how we deploy our clusters:
+
+<ul>
+<li>
+manual deployment:
+
+<ul>
+<li>
+you deploy etcd by <em>downloading the binaries yourself</em> and <em>configuring etcd as service in your master node</em>
+
+<li>
+"--advertise-client-urls" will be the address on which etcd listens
+
+<li>
+we configure this URL to be the <em>etcd server</em> in the <span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-ETCD-kube-api server"></span><strong id="kube-api server">kube-api server</strong>
+
+</ul>
+<li>
+kubeadm:
+
+<ul>
+<li>
+kubeadm deploys the <em>etcd server</em> as a <em>POD</em> in the <em>kube-system namespace</em>
+
+</ul>
+</ul>
+</ul>
+
+<p>
+-&gt; ETCD in High Availability Environment
+</p>
+<ul>
+<li>
+When you are manually setting up the <em>etcd server</em> in HA:
+
+<ul>
+<li>
+You will have multiple master nodes with multiple <em>etcd servers</em>
+
+<li>
+You need to <em>SPECIFY the etcd instances</em> so that they know about each other:
+
+<ul>
+<li>
+"--initial-cluster"
+
+</ul>
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBE-API SERVER"><h3 id="KUBE-API SERVER" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBE-API SERVER">KUBE-API SERVER</a></h3></div>
+<ul>
+<li>
+<em>primary management component</em>
+
+</ul>
+<p>
+TIP: kubectl commands can also be sent as a POST/GET(?) request to the kube-apiserver
+</p>
+<ul>
+<li>
+for example when you want to create a new node:
+
+<ul>
+<li>
+authenticate user
+
+<li>
+validate request
+
+<li>
+retrieve data
+
+<li>
+update etcd
+
+<li>
+scheduler
+
+<li>
+kubelet
+
+</ul>
+<li>
+directly interacts with the <em>etcd server</em>
+
+<li>
+it can be installed <em>manually</em> as a binary
+
+</ul>
+
+<p>
+TIP: you can either look at the <em>"/etc/kubernetes/manifests"</em> folder or "/etc/systemd/system/kube-apiserver.service" or "ps aux | grep kube-apiserver" for the options
+</p>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBE CONTROLLER MANAGER"><h3 id="KUBE CONTROLLER MANAGER" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBE CONTROLLER MANAGER">KUBE CONTROLLER MANAGER</a></h3></div>
+<ul>
+<li>
+watch status, remediate situation
+
+<li>
+a <em>controller</em> is a process that continuously monitors the state of various components within the system and works towards bringing the whole system to the desired state
+
+<li>
+node-controller:
+
+<ul>
+<li>
+checks the status of nodes every <em>5 seconds</em> through the "kube-apiserver"
+
+<li>
+if a node <em>DOES NOT</em> respond in this timeframe it is marked <em>UNREACHABLE</em> but it waits for <em>40 seconds</em> (grace period)
+
+<li>
+after a node becomes <em>UNREACHABLE</em> it gives it <em>5 minutes</em> to come back up (POD eviction time)
+
+<li>
+if it doesn't come back up, it removes the pods assigned to that node and provisions them on healthy ones if there is a replicaset
+
+</ul>
+<li>
+replication-controller:
+
+<ul>
+<li>
+responsible for <em>monitoring the status of replica sets and ensures that the desired number of pods are available at all times within the set</em>
+
+</ul>
+<li>
+every concept we have seen so far <em>deployments, namespaces, endpoints etc.</em> has a corresponding <em>CONTROLLER</em>
+
+<li>
+all these different controllers are packaged into <em>a single process</em> known as the "k8s-controller-manager"
+
+<li>
+install the binary and run it as a service
+
+<li>
+you can see the options similarly to the kube-apiserver
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-SCHEDULER"><h3 id="SCHEDULER" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-SCHEDULER">SCHEDULER</a></h3></div>
+<ul>
+<li>
+responsible for <em>scheduling pods on nodes</em>
+
+<li>
+<span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-SCHEDULER-only responsible"></span><strong id="only responsible">only responsible</strong> for deciding <em>which pod goes on which node</em> it doesn't actually place the pod
+
+<ul>
+<li>
+placing the pod is the job of the <em>"kubelet"</em>
+
+</ul>
+<li>
+it goes through <em>TWO PHASES</em> to identify the <em>best node</em> for a pod:
+
+<ul>
+<li>
+filter nodes:
+
+<ul>
+<li>
+filters out the nodes that <em>DO NOT</em> fit the profile for this pod
+
+</ul>
+<li>
+rank nodes:
+
+<ul>
+<li>
+ranks the nodes to find the <em>best fit</em>
+
+<li>
+priority function to assign a score to the nodes from 0 to 10
+
+</ul>
+</ul>
+<li>
+installed as a binary and run it as a service
+
+<li>
+same deal for the options as the kube-apiserver
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBELET"><h3 id="KUBELET" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBELET">KUBELET</a></h3></div>
+<ul>
+<li>
+sole point of contact from the master nodes
+
+<li>
+load or unload containers to the worker as instructed by the <em>scheduler</em> (through the api server)
+
+<li>
+sends back reports at <em>regular intervals</em> about the status of the node and pods on it
+
+<li>
+example work:
+
+<ul>
+<li>
+<em>REGISTERS</em> the node with the k8s cluster
+
+<li>
+<em>REQUESTS</em> the <span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBELET-container runtime engine"></span><strong id="container runtime engine">container runtime engine</strong>, to create the pod
+
+<li>
+then <em>MONITORS</em> the state of the pod and containers in it and <em>REPORTS</em> to the kube-apiserver
+
+</ul>
+<li>
+"kubeadm" <em>DOES NOT</em> deploy kubelets
+
+<li>
+you <em>MUST</em> always install the kubelet on your worker nodes
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBEPROXY"><h3 id="KUBEPROXY" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBEPROXY">KUBEPROXY</a></h3></div>
+<ul>
+<li>
+a process that runs on each node in a k8s cluster
+
+<li>
+it looks for <em>new services</em> and every time a new service is created; it creates the appropriate rules on each node to forward traffic to those services to the relevant pods
+
+<li>
+It does this by <em>IP tables rules</em>:
+
+<ul>
+<li>
+it creates an <em>IP tables</em> rule on each node in the cluster to forward traffic heading to the IP of the service to the IP of the actual pod
+
+</ul>
+<li>
+installed as a binary and run it as a service
+
+</ul>
+
+<p>
+CERT. TIP -&gt; It might be difficult to copy/paste YAML files so use the "--dry-run=client -o yaml" to <em>GENERATE</em> yaml files
+kubectl run nginx --image=nginx --dry-run=client -o yaml
+kubectl create deployment --image=nginx nginx --dry-run=client -o yaml
+</p>
+
+<p>
+LINK -&gt; <a href="https://kubernetes.io/docs/reference/kubectl/conventions/">https://kubernetes.io/docs/reference/kubectl/conventions/</a>
+</p>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-NAMESPACES"><h3 id="NAMESPACES" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-NAMESPACES">NAMESPACES</a></h3></div>
+<ul>
+<li>
+k8s automatically creates three namespaces when the cluster is <em>first set up</em>
+
+<ul>
+<li>
+default namespace
+
+<li>
+kube-system namespace
+
+<ul>
+<li>
+since k8s creates a set of pods and services for its <em>internal purposes</em> (ie. networking solution, DNS service) to <em>ISOLATE</em> these they are created under this namespace
+
+</ul>
+<li>
+kube-public namespace
+
+<ul>
+<li>
+resources that should be available for all users are created here
+
+</ul>
+</ul>
+<li>
+you can create <em>your own namespace</em>
+
+<li>
+example:
+
+<ul>
+<li>
+if you want to use the same cluster as both dev &amp; prod environment but you want to isolate the resources between them
+
+<li>
+you can just create a different namespace for each of them
+
+</ul>
+<li>
+you can <em>assign a quota of resources</em> to each namespace
+
+<li>
+when pods/services refer to others in the same namespace they can just use the resource's name
+
+<li>
+however, when you are trying to refer to a resource in <em>another namespace</em>:
+
+<ul>
+<li>
+you <em>MUST APPEND</em> the namespace to the name of the service
+
+<li>
+ex. "db-service.dev.svc.cluster.local"
+
+</ul>
+<li>
+we are able to do this because <em>when a service is created a DNS entry is automatically added in this format</em>
+
+<li>
+you can specify the "namespace" under the <em>metadata</em> part of a YAML file
+
+<li>
+you can create <em>a new namespace</em> by creating a namespace definition file:
+
+<ul>
+<li>
+"kind: Namespace"
+
+</ul>
+<li>
+or you can use the imperative command <em>"kubectl create ns &lt;name&gt;"</em>
+
+<li>
+"kubectl get pods" shows pods inside the <em>default namespace</em>
+
+<li>
+<em>TO SWITCH TO ANOTHER NAMESPACE</em>: "kubectl config set-context $(kubectl config current-context) --namespace=&lt;NAME&gt;"
+
+<li>
+To limit resources in a namespace <em>CREATE A RESOURCE QUOTA</em>:
+
+<ul>
+<li>
+"kind: ResourceQuota"
+
+<li>
+and you need to specify the namespace for which you are trying to create the resource quota for under the metadata
+
+<li>
+under <em>spec</em> specify your limits
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-SERVICES"><h3 id="SERVICES" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-SERVICES">SERVICES</a></h3></div>
+<ul>
+<li>
+Refer to "k8s for absolute beginners"
+
+</ul>
+<p>
+TIP -&gt; "kubectl expose" to create a NodePort service
+</p>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-IMPERATIVE VS. DECLARATIVE"><h3 id="IMPERATIVE VS. DECLARATIVE" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-IMPERATIVE VS. DECLARATIVE">IMPERATIVE VS. DECLARATIVE</a></h3></div>
+<ul>
+<li>
+Imperative:
+
+<ul>
+<li>
+Set of instructions <em>step-by-step</em>
+
+<li>
+Using <em>kubectl commands</em> one-by-one
+
+<li>
+creating, replacing, deleting using <em>YAML files</em>
+
+<li>
+hard to <em>KEEP TRACK OF</em> the <em>history</em> if you use commands:
+
+<ul>
+<li>
+use YAML files
+
+</ul>
+</ul>
+<li>
+Declarative:
+
+<ul>
+<li>
+You declare <em>the requirements</em>
+
+<li>
+"kubectl apply" command 
+
+<li>
+you can <em>SPECIFY</em> a <em>path</em> instead of a <em>single file</em> and all the objects will be created
+
+</ul>
+</ul>
+
+<p>
+CERT. TIP -&gt; if you <em>don't</em> have a complex req. use <em>imperative approach with commands</em> otherwise <em>YAML files</em>
+LINK -&gt; <a href="https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands">https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands</a>
+</p>
+
+<div id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBECTL APPLY COMMAND"><h3 id="KUBECTL APPLY COMMAND" class="header"><a href="#CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBECTL APPLY COMMAND">KUBECTL APPLY COMMAND</a></h3></div>
+<ul>
+<li>
+When you use the <em>apply command</em> a <em>"Last applied configuration"</em> file is created in <span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBECTL APPLY COMMAND-JSON format"></span><strong id="JSON format">JSON format</strong>
+
+<li>
+Any changes to be made are compared between the <em>local YAML file</em>, the last applied config, and the live k8s object config
+
+<li>
+the <em>last applied config</em> is stored inside the <span id="CORE CONCEPTS-CLUSTER ARCHITECTURE-KUBECTL APPLY COMMAND-live object config"></span><strong id="live object config">live object config</strong> as an annotation
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING"><h2 id="SCHEDULING" class="header"><a href="#CORE CONCEPTS-SCHEDULING">SCHEDULING</a></h2></div>
+<div id="CORE CONCEPTS-SCHEDULING-MANUAL SCHEDULING"><h3 id="MANUAL SCHEDULING" class="header"><a href="#CORE CONCEPTS-SCHEDULING-MANUAL SCHEDULING">MANUAL SCHEDULING</a></h3></div>
+<ul>
+<li>
+What to schedule?
+
+<ul>
+<li>
+Every pod you create has a <em>nodeName</em> property that is not set by default
+
+<li>
+The scheduler goes through the pods and looks for ones that <em>DO NOT have this property set</em>
+
+</ul>
+<li>
+Which node to schedule=
+
+<ul>
+<li>
+Then, it runs the <em>scheduling algorithm</em> to find the right node for this pod
+
+</ul>
+<li>
+(Schedule) Bind Pod to Node
+
+<ul>
+<li>
+It schedules the pod one the node by setting the <em>nodeName property to the name of the pod</em>
+
+</ul>
+<li>
+If there is <em>NO scheduler</em> pods will be stuck in a <em>pending</em> state
+
+<li>
+Easiest way to schedule manually would be to set the <em>nodeName property for a pod</em>
+
+<li>
+k8s <em>WILL NOT allow you to modify the nodeName property of a pod</em>
+
+<li>
+You can create a <em>binding object</em> and send a POST request to the pods binding API
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-LABELS AND SELECTORS"><h3 id="LABELS AND SELECTORS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-LABELS AND SELECTORS">LABELS AND SELECTORS</a></h3></div>
+<ul>
+<li>
+standard method for <em>grouping things together</em>
+
+<li>
+labels:
+
+<ul>
+<li>
+properties attached to each item
+
+</ul>
+<li>
+selectors:
+
+<ul>
+<li>
+help you <em>filter</em> these items
+
+</ul>
+<li>
+"kubectl get pods --selector app=App1" 
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-TAINTS AND TOLERATIONS"><h3 id="TAINTS AND TOLERATIONS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-TAINTS AND TOLERATIONS">TAINTS AND TOLERATIONS</a></h3></div>
+<ul>
+<li>
+Taints and tolerations are <em>used to set restrictions on what pods can be scheduled on a node</em>
+
+<li>
+assume that you have dedicated resource on one of your nodes so we want only the pods that belong to a specific app:
+
+<ul>
+<li>
+first you apply a <em>taint</em> on the node and prevent all pods from being scheduled
+
+<li>
+pods have <em>zero toleration</em> by default
+
+<li>
+now we must <em>SPECIFY</em> which pods are <em>tolerant</em> to this taint
+
+</ul>
+<li>
+"kubectl taint nodes &lt;NODE_NAME&gt; &lt;KEY=VAL:taint-effect&gt;
+
+<li>
+there are _three taint effects-:
+
+<ul>
+<li>
+NoSchedule
+
+<ul>
+<li>
+pods will not be scheduled on this node
+
+</ul>
+<li>
+PreferNoSchedule
+
+<ul>
+<li>
+the system will <em>try to avoid</em> placing a pod on the node
+
+</ul>
+<li>
+NoExecute
+
+<ul>
+<li>
+no _new pods will be scheduled and if there are <em>existing pods</em> on the node they will be evicted if they don't tolerate the taint
+
+</ul>
+</ul>
+<li>
+to add <em>TOLERATIONS</em>:
+
+<ul>
+<li>
+under the spec (everything should be in double quotes):
+
+<ul>
+<li>
+tolerations (this is a list):
+
+<ul>
+<li>
+key:"&lt;KEY_NAME&gt;"
+
+<li>
+operator:"Equal"
+
+<li>
+value:"&lt;VAL_NAME&gt;"
+
+<li>
+effect:"&lt;TAINT_EFFECT&gt;"
+
+</ul>
+</ul>
+</ul>
+<li>
+scheduler <em>DOES NOT</em> schedule any new pods on the <em>master node</em> because when the k8s cluster is first set up the <em>master nodes are tainted</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-NODE SELECTORS"><h3 id="NODE SELECTORS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-NODE SELECTORS">NODE SELECTORS</a></h3></div>
+<ul>
+<li>
+imagine you have three nodes with one having extra resources, you want to schedule data processing tasks to this node with extra resources
+
+<li>
+under the spec:
+
+<ul>
+<li>
+nodeSelector: 
+
+<ul>
+<li>
+size: Large
+
+</ul>
+</ul>
+<li>
+you need to <em>label your nodes</em> before using the nodeSelector like this
+
+<li>
+"kubectl label nodes &lt;NODE_NAME&gt; &lt;LABEL_KEY&gt;=&lt;LABEL_VAL&gt;"
+
+<li>
+<em>CANNOT</em> handle complex requirements
+
+</ul>
+
+<ol>
+<li>
+NODE AFFINITY
+
+<li>
+<em>ENSURE</em> that <em>pods are hosted on particular nodes</em>
+
+<li>
+under the spec:
+
+<ul>
+<li>
+affinity:
+
+<ul>
+<li>
+nodeAffinity:
+
+</ul>
+</ul>
+<li>
+two types of affinities available:
+
+<ul>
+<li>
+requiredDuringSchedulingIgnoredDuringExecution
+
+<li>
+preferredDuringSchedulingIgnoredDuringExecution
+
+</ul>
+</ol>
+
+<p>
+TIP: Usually you will have to use a <em>combination</em> of two approaches (taints and tolerations) to make sure pods run on specific nodes
+</p>
+<ul>
+<li>
+Imagine you have red/green/blue and two other nodes and r/g/b and two other pods
+
+<li>
+if you use taints and tolerations one of your colored nodes can end up on a non-colored node
+
+<li>
+if you use node affinities one of the non-colored pods can end up on a colored node
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-RESOURCE REQUIREMENTS AND LIMITS"><h3 id="RESOURCE REQUIREMENTS AND LIMITS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-RESOURCE REQUIREMENTS AND LIMITS">RESOURCE REQUIREMENTS AND LIMITS</a></h3></div>
+<ul>
+<li>
+whenever a pod is placed on a node it consumes resources available to that node
+
+<li>
+CPU / Mem / Disk
+
+<li>
+By <em>default</em>, 0.5 CPU, 256 Mebibyte of memory
+
+<li>
+For this to be the case, "you must have first set those as default values for request and limit by creating a LimitRange in that namespace"
+
+<li>
+docker containers have <em>NO LIMIT</em> by default
+
+<ul>
+<li>
+k8s by default makes it so that a container will be limited to  1 vCPU and 512 Mi
+
+</ul>
+<li>
+a container <em>CAN</em> use more CPU than its limit
+
+<ul>
+<li>
+if this is the case the pod will be <em>TERMINATED</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-DAEMONSETS"><h3 id="DAEMONSETS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-DAEMONSETS">DAEMONSETS</a></h3></div>
+<ul>
+<li>
+They are <em>LIKE replica sets</em>, as in they help you run multiple instances of pods but <span id="CORE CONCEPTS-SCHEDULING-DAEMONSETS-it runs one copy of your pod in each node"></span><strong id="it runs one copy of your pod in each node">it runs one copy of your pod in each node</strong>
+
+<li>
+The <em>daemon set</em> ensures that one copy of the pod is always present in all nodes in the cluster
+
+<li>
+<em>monitoring agent</em> or <em>logging</em> are <em>PERFECT examples</em>
+
+<li>
+kubeproxy is a <em>daemon set</em>
+
+<li>
+networking solutions are also <em>usually</em> deployed as daemon sets
+
+<li>
+similar creation to a <em>replica set</em> in the YAML file
+
+<li>
+"kubectl get daemonsets"
+
+</ul>
+
+<ul>
+<li>
+How does it work?
+
+<li>
+old way was to use the nodeName selector to bypass the scheduler
+
+<li>
+new way is to use <em>node affinity</em> and the default scheduler
+
+</ul>
+
+<div id="CORE CONCEPTS-SCHEDULING-STATIC PODS"><h3 id="STATIC PODS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-STATIC PODS">STATIC PODS</a></h3></div>
+<ul>
+<li>
+If there was no API server for kubelet to communicate where to create pods, we could put our <em>YAML files</em> in a directory and the "kubelet" would periodically check there
+
+<li>
+The pods that are created by the kubelet <em>on its own</em> are called <span id="CORE CONCEPTS-SCHEDULING-STATIC PODS-static pods"></span><strong id="static pods">static pods</strong>
+
+<li>
+You can only create pods this way
+
+<li>
+"--pod-manifest-path" on the kubelet.service
+
+<li>
+or "staticPodPath" in kubeconfig.yaml
+
+<li>
+kubelet can create both <em>static pods</em> and and ones requested by the <em>API server</em>
+
+<li>
+API server is <em>AWARE</em> of the static pods created by the kubelet
+
+<li>
+If the static pod is a part of the a cluster, kubelet creates a <em>read-only mirror object</em> in the kubeAPI-server
+
+<li>
+Why should we use them?
+
+<ul>
+<li>
+Since they are not dependent on the k8s control plane, you can use static pods to deploy the control plane components as pods on a node
+
+</ul>
+<li>
+that's how the <em>kubeadm</em> tool sets up the clusters
+
+</ul>
+
+<table>
+<tr>
+<th>
+Static PODs
+</th>
+<th>
+DaemonSets
+</th>
+</tr>
+<tr>
+<td>
+Created by the kubelet
+</td>
+<td>
+Created by the API server (DaemonSet controller)
+</td>
+</tr>
+<tr>
+<td>
+Deploy control plane components as static pods
+</td>
+<td>
+Deploy monitoring agents, Logging agents on nodes
+</td>
+</tr>
+<tr>
+<td>
+Ignored by the Kube-Scheduler
+</td>
+</tr>
+</table>
+
+<div id="CORE CONCEPTS-SCHEDULING-MULTIPLE SCHEDULERS"><h3 id="MULTIPLE SCHEDULERS" class="header"><a href="#CORE CONCEPTS-SCHEDULING-MULTIPLE SCHEDULERS">MULTIPLE SCHEDULERS</a></h3></div>
+<ul>
+<li>
+What if taints/tolerations &amp; affinities do not satisfy your needs?
+
+<li>
+You can have your own k8s scheduler program, package it and deploy it as the default scheduler
+
+<li>
+You can also have multiple schedulers in your k8s cluster
+
+<li>
+When creating a pod or a deployment you can instruct k8s to have the pod scheduled by <em>a specific scheduler</em>
+
+<li>
+Binary and run it as a service
+
+<li>
+kube-scheduler.service it takes a <em>"--scheduler-name=&lt;VAL&gt;" flag</em>
+
+<li>
+you can change this name value to have your own custom scheduler
+
+<li>
+"--leader-elect" option:
+
+<ul>
+<li>
+used when you have multiple copies of the scheduler running on the master nodes in a HA setup where you have multiple master nodes with the kube-scheduler process running on both of them
+
+<li>
+If multiple copies of the same scheduler are running on different nodes <em>ONLY ONE CAN BE ACTIVE</em> at a time
+
+</ul>
+<li>
+to get multiple schedulers working you must:
+
+<ul>
+<li>
+either set the "leader-elect" option to <em>false</em> in case where you don't have multiple masters
+
+<li>
+if you do you can pass in an additional parameter to set <em>a lock object name</em>
+
+</ul>
+<li>
+when you are creating the pod:
+
+<ul>
+<li>
+"schedulerName" inside the <em>YAML file</em>
+
+<li>
+this scheduler will be picked when the pod is created
+
+</ul>
+<li>
+you can see which scheduler was picked by:
+
+<ul>
+<li>
+"kubectl get events"
+
+</ul>
+<li>
+view scheduler logs:
+
+<ul>
+<li>
+"kubectl logs &lt;SCHEDULER_NAME&gt; --name-space=kube-system"
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-LOGGING AND MONITORING"><h2 id="LOGGING AND MONITORING" class="header"><a href="#CORE CONCEPTS-LOGGING AND MONITORING">LOGGING AND MONITORING</a></h2></div>
+<div id="CORE CONCEPTS-LOGGING AND MONITORING-MONITOR CLUSTER COMPONENTS"><h3 id="MONITOR CLUSTER COMPONENTS" class="header"><a href="#CORE CONCEPTS-LOGGING AND MONITORING-MONITOR CLUSTER COMPONENTS">MONITOR CLUSTER COMPONENTS</a></h3></div>
+<ul>
+<li>
+As of this time, <em>no fully-featured built-in monitoring solution</em> in k8s
+
+<li>
+Metrics Server, Prometheus, Elastic Stack, Datadog, Dynatrace
+
+<li>
+kubelet has a subcomponent known as <em>cAdvisor or Container Advisor</em>:
+
+<ul>
+<li>
+cAdvisor is responsible for retrieving <em>performance metrics</em> and exposes them through the kubelet API
+
+</ul>
+<li>
+after adding the "metrics-server":
+
+<ul>
+<li>
+you can view the resources with "kubectl top node/pod"
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-LOGGING AND MONITORING-MANAGING APPLICATION LOGS"><h3 id="MANAGING APPLICATION LOGS" class="header"><a href="#CORE CONCEPTS-LOGGING AND MONITORING-MANAGING APPLICATION LOGS">MANAGING APPLICATION LOGS</a></h3></div>
+<ul>
+<li>
+"kubectl logs -f &lt;POD_NAME&gt; -&gt; similar to <em>Docker</em>
+
+<li>
+If there are <em>multiple containers</em> inside a pod you <em>MUST specify the name of the container</em>
+
+<ul>
+<li>
+"kubectl logs -f &lt;POD_NAME&gt; &lt;CONTAINER_NAME&gt;"
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT"><h2 id="APPLICATION LIFECYCLE MANAGEMENT" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT">APPLICATION LIFECYCLE MANAGEMENT</a></h2></div>
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ROLLING UPDATES AND ROLLBACKS"><h3 id="ROLLING UPDATES AND ROLLBACKS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ROLLING UPDATES AND ROLLBACKS">ROLLING UPDATES AND ROLLBACKS</a></h3></div>
+<ul>
+<li>
+When you first create a deployment, it triggers <em>a rollout</em>, a new rollout creates a deployment revision
+
+<li>
+When the app is upgraded in the future, a new rollout is triggered thus a new revision
+
+<li>
+"kubectl rollout status &lt;DEPLOYMENT_NAME&gt;
+
+<li>
+"kubectl rollout history &lt;DEPLOYMENT_NAME&gt;
+
+<li>
+Two deployment strategies:
+
+<ul>
+<li>
+Destroy all the old ones and then create new ones: this means that there is <em>DOWNTIME</em>: <span id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ROLLING UPDATES AND ROLLBACKS-recreate strategy"></span><strong id="recreate strategy">recreate strategy</strong>
+
+<li>
+Take one down, bring one up: <span id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ROLLING UPDATES AND ROLLBACKS-rolling update"></span><strong id="rolling update">rolling update</strong> (default)
+
+</ul>
+<li>
+How do you update your application?
+
+<ul>
+<li>
+"kubectl apply"
+
+<li>
+"kubectl set image &lt;DEPLOYMENT_NAME&gt; nginx=nginx:1.7.0"
+
+<ul>
+<li>
+Doing it this way will make it so that you have a different config in your deployment definition file
+
+</ul>
+</ul>
+<li>
+When you are upgrading, your deployment creates a <em>new replica set</em>
+
+<li>
+"kubectl rollout undo &lt;DEPLOYMENT_NAME&gt;" -&gt; <em>rollback</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-CONFIGURING APPLICATIONS"><h3 id="CONFIGURING APPLICATIONS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-CONFIGURING APPLICATIONS">CONFIGURING APPLICATIONS</a></h3></div>
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ENV VARIABLES"><h3 id="ENV VARIABLES" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-ENV VARIABLES">ENV VARIABLES</a></h3></div>
+<ul>
+<li>
+ENV Value Types:
+
+<ul>
+<li>
+Plain key value
+
+<li>
+ConfigMaps
+
+<li>
+Secrets
+
+</ul>
+<li>
+All three are under <em>env:</em> inside our <em>YAML file</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-CONFIG MAPS"><h3 id="CONFIG MAPS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-CONFIG MAPS">CONFIG MAPS</a></h3></div>
+<ul>
+<li>
+When you have multiple definition files it becomes tedious to manage environment data as plain key values
+
+<ol>
+<li>
+Create config map
+
+<li>
+Inject them into the definition file
+
+</ol>
+<li>
+Two ways of creating:
+
+<ul>
+<li>
+Imperative:
+
+<ul>
+<li>
+<em>kubectl create configmap</em>
+
+</ul>
+<li>
+Declarative:
+
+<ul>
+<li>
+kubectl apply -f
+
+</ul>
+</ul>
+<li>
+Viewing configmaps:
+
+<ul>
+<li>
+_"kubectl get configmaps"
+
+<li>
+<em>"kubectl describe configmaps"</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-SECRETS"><h3 id="SECRETS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-SECRETS">SECRETS</a></h3></div>
+<ul>
+<li>
+Similar to config maps but they are stored in a <em>hashed or encoded</em> format
+
+<li>
+Create and inject again like config maps
+
+<li>
+While you are using the declarative approach, you <em>MUST</em> specify the secrets in an <em>encoded format</em>
+
+<ul>
+<li>
+base64 encoded?
+
+</ul>
+<li>
+"kubectl describe secrets" only <em>SHOWS the attributes but hides the values themselves</em>
+
+<li>
+you can run the same command and output a <em>YAML file</em> to view the secret values
+
+<ul>
+<li>
+A secret is only sent to a node if a pod on that node requires it.
+
+<li>
+Kubelet stores the secret into a tmpfs so that the secret is not written to disk storage.
+
+<li>
+Once the Pod that depends on the secret is deleted, kubelet will delete its local copy of the secret data as well.
+
+</ul>
+<li>
+The <em>ONLY thing</em> that makes secrets kind of safe is best practices surrounding secrets:
+
+<ul>
+<li>
+Not checking-in secret object definition files to source code repositories.
+
+<li>
+Enabling Encryption at Rest for Secrets so they are stored encrypted in ETCD. 
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-MULTI CONTAINER PODS"><h3 id="MULTI CONTAINER PODS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-MULTI CONTAINER PODS">MULTI CONTAINER PODS</a></h3></div>
+<ul>
+<li>
+When you need two services running on the same pod, sharing network/storage you can just add the second container to the <em>definition YAML file</em> under the containers part
+
+</ul>
+
+<div id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-INIT CONTAINERS"><h3 id="INIT CONTAINERS" class="header"><a href="#CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-INIT CONTAINERS">INIT CONTAINERS</a></h3></div>
+<ul>
+<li>
+In a multi pod setup, all containers are <em>EXPECTED to stay alive</em> as long as pod's lifecycle.
+
+<li>
+If any of them fails, the pod restarts
+
+<li>
+But sometimes, you might want a process to run <em>to completion</em> in one of your containers, we can solve this with <span id="CORE CONCEPTS-APPLICATION LIFECYCLE MANAGEMENT-INIT CONTAINERS-init containers"></span><strong id="init containers">init containers</strong>
+
+<li>
+init containers run sequentially one at a time.
+
+<li>
+If an init container fails to complete, k8s restarts the pod repeatedly until the init container succeeds
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER MAINTENANCE"><h2 id="CLUSTER MAINTENANCE" class="header"><a href="#CORE CONCEPTS-CLUSTER MAINTENANCE">CLUSTER MAINTENANCE</a></h2></div>
+<div id="CORE CONCEPTS-CLUSTER MAINTENANCE-OS UPGRADES"><h3 id="OS UPGRADES" class="header"><a href="#CORE CONCEPTS-CLUSTER MAINTENANCE-OS UPGRADES">OS UPGRADES</a></h3></div>
+<ul>
+<li>
+If you have <em>maintenance tasks</em> to be performend on a node and you know that the workloads running on the node have other replicas, it's okay that they go down for a short amount of time
+
+<li>
+If you are sure the node will come back online in 5 mins (default pod eviction timeout), you can make a quick upgrade and reboot
+
+<li>
+If you are not sure:
+
+<ul>
+<li>
+You can purposefully drain the node <span id="CORE CONCEPTS-CLUSTER MAINTENANCE-OS UPGRADES-&quot;kubectl drain &lt;NODE_NAME&gt;&quot;"></span><strong id="&quot;kubectl drain &lt;NODE_NAME&gt;&quot;">"kubectl drain &lt;NODE_NAME&gt;"</strong>
+
+<li>
+This means that the workloads will move to <em>other nodes</em>
+
+<li>
+Technically, they are <em>RECREATED</em> after being terminated
+
+<li>
+The node is <em>cordoned</em>, in other words <em>marked as unschedulable</em>
+
+<li>
+Now you can reboot the node, and <em>uncordon</em> it
+
+<li>
+<em>"kubectl uncordon &lt;NODE-NAME&gt;"</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER MAINTENANCE-K8S RELEASES"><h3 id="K8S RELEASES" class="header"><a href="#CORE CONCEPTS-CLUSTER MAINTENANCE-K8S RELEASES">K8S RELEASES</a></h3></div>
+<ul>
+<li>
+v1.11.3 (major/minor/patch)
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER MAINTENANCE-CLUSTER UPGRADE PROCESS"><h3 id="CLUSTER UPGRADE PROCESS" class="header"><a href="#CORE CONCEPTS-CLUSTER MAINTENANCE-CLUSTER UPGRADE PROCESS">CLUSTER UPGRADE PROCESS</a></h3></div>
+<ul>
+<li>
+kube-api server must always be at a version higher than <em>controller manager, scheduler, kubelet and kube-proxy</em>:
+
+<ul>
+<li>
+controller and scheduler must be at most <em>a version lower</em>
+
+<li>
+kubelet and kubeproxy must be at most <em>two versions lower</em>
+
+</ul>
+<li>
+<span id="CORE CONCEPTS-CLUSTER MAINTENANCE-CLUSTER UPGRADE PROCESS-kubectl"></span><strong id="kubectl">kubectl</strong> on the other hand <em>can be at a version lower or higher than the api server</em>
+
+<li>
+you first upgrade <em>the master nodes</em> then the <em>worker nodes</em>
+
+<li>
+"kubeadm upgrade plan"
+
+<li>
+you need to "apt-get upgrade kubeadm=&lt;version&gt;" first
+
+<li>
+"kubeadm upgrade apply &lt;version&gt;"
+
+<li>
+with kubeadm you need to upgrade the kubelet version on master nodes separately
+
+<li>
+"kubeadm upgrade node config --kubelet-version &lt;version" after apt-get upgrade
+
+<li>
+then you restart the kubelet service "systemctl restart kubelet"
+
+</ul>
+
+<div id="CORE CONCEPTS-CLUSTER MAINTENANCE-BACKUP AND RESTORE METHODS"><h3 id="BACKUP AND RESTORE METHODS" class="header"><a href="#CORE CONCEPTS-CLUSTER MAINTENANCE-BACKUP AND RESTORE METHODS">BACKUP AND RESTORE METHODS</a></h3></div>
+<ul>
+<li>
+One of the commands that can be used for a backup script:
+
+<ul>
+<li>
+<em>"kubectl get all --all-namespaces -o yaml &gt; all-deploy-services.yaml"</em>
+
+</ul>
+<li>
+Velero (formerly known as ARK) can do this for you
+
+<li>
+Backing up the etcd cluster:
+
+<ul>
+<li>
+"ETCDCTL_API=3 etcdctl snapshot save &lt;file-name&gt;"
+
+</ul>
+<li>
+To restore the cluster from this backup:
+
+<ul>
+<li>
+First, stop the kubeapi-server service -&gt; "service kube-apiserver stop"
+
+<li>
+"ETCDCTL_API=3 etcdctl snapshot restore &lt;file-name&gt; --data-dir &lt;backup-path&gt;"
+
+<li>
+You would then configure etcd to use the new data-dir
+
+<li>
+Then, you would run "systemctl daemon-reload" and "service etcd restart"
+
+<li>
+Finally, start the kubeapi-server "service kube-apiserver start"
+
+</ul>
+<li>
+With all the etcd commands, remember to specify <em>the certificate files</em> for auth and the endpoint to the outside cluster and the cacert and the key
+
+</ul>
+
+<p>
+TIP -&gt; you can just set the "export ETCDCTL_API=3" instead of using it before every command
+</p>
+
+<div id="CORE CONCEPTS-SECURITY"><h2 id="SECURITY" class="header"><a href="#CORE CONCEPTS-SECURITY">SECURITY</a></h2></div>
+<div id="CORE CONCEPTS-SECURITY-SECURITY PRIMITIVES"><h3 id="SECURITY PRIMITIVES" class="header"><a href="#CORE CONCEPTS-SECURITY-SECURITY PRIMITIVES">SECURITY PRIMITIVES</a></h3></div>
+<ul>
+<li>
+Secure Hosts:
+
+<ul>
+<li>
+All access must be secured, root access disabled, password based authentication disabled, only SSH key-based auth
+
+<li>
+Any other hardening measures
+
+</ul>
+<li>
+Secure K8s:
+
+<ul>
+<li>
+Who can access the cluster? -&gt; Authentication:
+
+<ul>
+<li>
+Files - username and passwords
+
+<li>
+Files - username and tokens
+
+<li>
+Certificates
+
+<li>
+External auth providers -&gt; LDAP
+
+<li>
+Service accounts
+
+</ul>
+<li>
+What can they do? -&gt; Authorization:
+
+<ul>
+<li>
+RBAC
+
+<li>
+ABAC (Attribute based authorization control)
+
+<li>
+Node authorization(?)
+
+<li>
+Webhook Mode
+
+</ul>
+</ul>
+<li>
+TLS Certificates:
+
+<ul>
+<li>
+all communication between various components is secured using <em>TLS encryption</em>
+
+</ul>
+<li>
+You can restrict access between pods using <em>network policies</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-AUTHENTICATION"><h3 id="AUTHENTICATION" class="header"><a href="#CORE CONCEPTS-SECURITY-AUTHENTICATION">AUTHENTICATION</a></h3></div>
+<ul>
+<li>
+K8s <em>DOES NOT</em> manage user accounts natively
+
+<li>
+K8s <em>CAN</em> manage <span id="CORE CONCEPTS-SECURITY-AUTHENTICATION-service accounts"></span><strong id="service accounts">service accounts</strong>
+
+<ul>
+<li>
+"kubectl create serviceaccount sa1"
+
+<li>
+"kubectl get serviceaccount"
+
+</ul>
+<li>
+All user access is managed by the <em>kube-apiserver</em>
+
+<ul>
+<li>
+The API server authenticates the user before processing the request
+
+</ul>
+<li>
+Auth mechanisms:
+
+<ul>
+<li>
+Static password file
+
+<ul>
+<li>
+"--basic-auth-file=&lt;CSV-file-path&gt;"
+
+<li>
+pass,username,userid,group -&gt; format
+
+</ul>
+<li>
+Static token file
+
+<ul>
+<li>
+"--token-auth-file"
+
+<li>
+similar format
+
+</ul>
+<li>
+Certificates
+
+<li>
+3rd party identity services
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-TLS"><h3 id="TLS" class="header"><a href="#CORE CONCEPTS-SECURITY-TLS">TLS</a></h3></div>
+<ul>
+<li>
+A <em>certificate</em> is used to guarantee trust between two parties during a transaction
+
+<li>
+A <em>copy of the key</em> must be sent to the server so that the server can decrypt the message -&gt; <span id="CORE CONCEPTS-SECURITY-TLS-symmetric encryption"></span><strong id="symmetric encryption">symmetric encryption</strong>
+
+<li>
+Asymmetric encryption:
+
+<ul>
+<li>
+A pair of keys: <em>public and private keys</em>
+
+</ul>
+<li>
+CAs are well known authorities that can sign and verify certificates for your
+
+<li>
+How do we know that the CAs are legit?
+
+<ul>
+<li>
+CAs themselves have their own public and private keys
+
+</ul>
+<li>
+This process of generating, distributing, and maintaining digital certificates is known as <em>public key infrastructure (PKI)</em>
+
+<li>
+Public keys are usually named <em>*.crt or *.pem</em>
+
+<li>
+Private keys are usually names <em>*.key or *-key.pem</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-TLS IN K8s"><h3 id="TLS IN K8s" class="header"><a href="#CORE CONCEPTS-SECURITY-TLS IN K8s">TLS IN K8s</a></h3></div>
+<ul>
+<li>
+Server certificates for k8s:
+
+<ul>
+<li>
+API server has its own set of keys to secure communications
+
+<li>
+etcd server has its own set of keys since it stores all information about the cluster
+
+<li>
+kubelet server on the worker nodes has its own keys since they expose an API endpoint that the API server interacts with
+
+</ul>
+<li>
+Client certificates for k8s:
+
+<ul>
+<li>
+The admins who access the cluster through <em>kubectl REST API</em>
+
+<li>
+The scheduler talks to the API server to look for pods
+
+<li>
+Controller manager
+
+<li>
+Kube-proxy
+
+<li>
+Kubelet
+
+</ul>
+<li>
+You <em>NEED at least one CA for your cluster</em>:
+
+<ul>
+<li>
+The CA has its own public and private keys also known as <em>Root Certificates</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-CERTIFICATE CREATION"><h3 id="CERTIFICATE CREATION" class="header"><a href="#CORE CONCEPTS-SECURITY-CERTIFICATE CREATION">CERTIFICATE CREATION</a></h3></div>
+<ul>
+<li>
+Certificate Authority:
+
+<ul>
+<li>
+"openssl genrsa -out ca.key 2048"
+
+<li>
+"openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr"
+
+<li>
+"openssl x509 -req -in ca.csr -signkey ca.key -out ca.crt"
+
+</ul>
+<li>
+Admin user:
+
+<ul>
+<li>
+Same commands but this time you specify the CA-key pair for the last command
+
+</ul>
+<li>
+For the kube-api server:
+
+<ul>
+<li>
+It goes by many names so you need to specify those names somewhere
+
+<li>
+"openssl.cnf" file is where you specify those alternate names
+
+<li>
+pass this file to the <em>openssl req</em> command
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-VIEW CERTIFICATE DETAILS"><h3 id="VIEW CERTIFICATE DETAILS" class="header"><a href="#CORE CONCEPTS-SECURITY-VIEW CERTIFICATE DETAILS">VIEW CERTIFICATE DETAILS</a></h3></div>
+<ul>
+<li>
+If the environment is set up by <em>kubeadm</em>:
+
+<ul>
+<li>
+Look for a file at "/etc/kubernetes/manifests/kube-apiserver.yaml"
+
+<li>
+"openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout" -&gt; <em>decode the certificate and view details</em>
+
+</ul>
+<li>
+"journalctl -u etcd.service -l" -&gt; <em>to view logs</em>
+
+<li>
+"kubectl logs etcd-master" -&gt; <em>if you set up the cluster with kubeadm</em>
+
+<li>
+If the <em>etcd or api server</em> are DOWN you need to go one level deeper to <em>DOCKER</em>
+
+<ul>
+<li>
+"docker ps -a"
+
+<li>
+"docker logs &lt;CONTAINER-NAME&gt;"
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-CERTIFICATES API"><h3 id="CERTIFICATES API" class="header"><a href="#CORE CONCEPTS-SECURITY-CERTIFICATES API">CERTIFICATES API</a></h3></div>
+<ul>
+<li>
+CA is just a pair of key files. Anyone with these files can sign other keys (creating new users with whatever privileges)
+
+<li>
+Store them in a secure server (you can use the <em>master node</em> for this purpose)
+
+<li>
+You can sign certificates yourself but there is a k8s api:
+
+<ul>
+<li>
+k8s api object called -&gt; <em>CertificateSigningRequest</em>
+
+<li>
+After creating this object certificates can be <em>reviewed and approved</em> by admins using the kubectl commands
+
+<li>
+Share certs with users
+
+</ul>
+<li>
+spec:
+
+<ul>
+<li>
+groups
+
+<li>
+usages
+
+<li>
+request (must be <em>base64</em>)
+
+</ul>
+<li>
+"kubectl get csr"
+
+<li>
+"kubectl certificate approve &lt;NAME&gt;"
+
+<li>
+All the certificate related operations are <em>CONTROLLED by the controller manager</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-KUBECONFIG"><h3 id="KUBECONFIG" class="header"><a href="#CORE CONCEPTS-SECURITY-KUBECONFIG">KUBECONFIG</a></h3></div>
+<ul>
+<li>
+Instead of passing your key files as options to the <em>kubectl</em> command, you can just move this information to a <span id="CORE CONCEPTS-SECURITY-KUBECONFIG-kubeconfig"></span><strong id="kubeconfig">kubeconfig</strong> file
+
+<li>
+Pass in "--kubeconfig &lt;CONFIG-NAME&gt;" (default config file is at $HOME/.kube/config)
+
+<li>
+Clusters / Contexts / Users -&gt; fields inside the config YAML file (these are all arrays)
+
+<li>
+"kubectl config view"
+
+<li>
+"kubectl config use-context &lt;CTX-NAME&gt;"
+
+<li>
+What about namespaces?
+
+<ul>
+<li>
+Each cluster may be configured with multiple namespaces within it
+
+<li>
+The <em>context field</em> underneath <em>contexts</em> can take an additional field <span id="CORE CONCEPTS-SECURITY-KUBECONFIG-namespace"></span><strong id="namespace">namespace</strong>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-API GROUPS"><h3 id="API GROUPS" class="header"><a href="#CORE CONCEPTS-SECURITY-API GROUPS">API GROUPS</a></h3></div>
+<ul>
+<li>
+Core group -&gt; <em>/api</em>
+
+<ul>
+<li>
+Where core functionality exists -&gt; namespaces, events, nodes, persistentVolumes, secrets, services etc.
+
+</ul>
+<li>
+Named group -&gt; <em>/apis</em>
+
+<ul>
+<li>
+More organized, the future of k8s will be using this endpoint
+
+</ul>
+<li>
+When you are sending curl requests to the api server you need to provide credentials or:
+
+<ul>
+<li>
+Set up <span id="CORE CONCEPTS-SECURITY-API GROUPS-&quot;kubectl proxy&quot;"></span><strong id="&quot;kubectl proxy&quot;">"kubectl proxy"</strong>
+
+<li>
+The proxy uses your credentials from the config file
+
+</ul>
+<li>
+<em>kubectl proxy != kube proxy</em>
+
+<li>
+TAKEAWAY: Resources are grouped into different <em>API groups</em> and resources have their <em>verbs</em> (or actions)
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-AUTHORIZATION"><h3 id="AUTHORIZATION" class="header"><a href="#CORE CONCEPTS-SECURITY-AUTHORIZATION">AUTHORIZATION</a></h3></div>
+<ul>
+<li>
+Types of authorization:
+
+<ul>
+<li>
+Node authorizer:
+
+<ul>
+<li>
+kubelet needs to access the api server
+
+</ul>
+<li>
+ABAC:
+
+<ul>
+<li>
+for each user you specify different attributes (create, view, delete pods for example) in a <em>policy file</em>
+
+<li>
+difficult to manage since you need to edit for everything
+
+</ul>
+<li>
+RBAC:
+
+<ul>
+<li>
+instead of directly associating a user with a set of permissions we create a role (ie. developer, security user)
+
+<li>
+provides a more standard approach
+
+</ul>
+<li>
+Webhook:
+
+<ul>
+<li>
+when you want to use a 3rd party solution, kubeapi can relay user information to the 3rd party app
+
+</ul>
+</ul>
+<li>
+Auth mode is configured on the API server (--authorization-mode):
+
+<ul>
+<li>
+Available options are <em>AlwaysAllow and AlwaysDeny</em>
+
+<li>
+When you have multiple modes configured, your request is authorized using each one in the order they are specified
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-RBAC"><h3 id="RBAC" class="header"><a href="#CORE CONCEPTS-SECURITY-RBAC">RBAC</a></h3></div>
+<ul>
+<li>
+Create a <em>role object</em> -&gt; <em>YAML file</em>
+
+<li>
+To <em>link the user to the role</em> -&gt; create another object called <em>RoleBinding</em>
+
+<li>
+"kubectl get roles"
+
+<li>
+"kubectl get rolebindings"
+
+<li>
+"kubectl describe role &lt;ROLE_NAME&gt;"
+
+<li>
+"kubectl describe rolebinding &lt;RB_NAME&gt;"
+
+<li>
+How do you as a user check access?
+
+<li>
+"kubectl auth can-i &lt;create deployments&gt;"
+
+<li>
+"kubectl auth can-i &lt;delete nodes&gt;"
+
+<li>
+As an admin you can impersonate a user to check their authorization:
+
+<ul>
+<li>
+"kubectl auth can-i &lt;create deployments&gt; --as &lt;USER_NAME&gt;"
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-CLUSTER ROLES AND ROLE BINDINGS"><h3 id="CLUSTER ROLES AND ROLE BINDINGS" class="header"><a href="#CORE CONCEPTS-SECURITY-CLUSTER ROLES AND ROLE BINDINGS">CLUSTER ROLES AND ROLE BINDINGS</a></h3></div>
+<ul>
+<li>
+The resources are categorized either as <em>namespaced or cluster scoped</em>
+
+<li>
+<span id="CORE CONCEPTS-SECURITY-CLUSTER ROLES AND ROLE BINDINGS-clusterroles and clusterrolebindings"></span><strong id="clusterroles and clusterrolebindings">clusterroles and clusterrolebindings</strong>:
+
+<ul>
+<li>
+Storage admin role -&gt; can create persistent volumes
+
+<li>
+Cluster admin -&gt; can view, create, delete nodes
+
+</ul>
+<li>
+set <em>resources</em> in the <em>YAML file</em> to be "nodes"
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-SERVICE ACCOUNTS"><h3 id="SERVICE ACCOUNTS" class="header"><a href="#CORE CONCEPTS-SECURITY-SERVICE ACCOUNTS">SERVICE ACCOUNTS</a></h3></div>
+<ul>
+<li>
+Prometheus, Jenkins, applications like these use <em>service accounts</em> to access the k8s cluster
+
+<li>
+"kubectl create serviceaccount &lt;NAME&gt;"
+
+<li>
+When we create a service account tokens are generated for us to be authorized
+
+<li>
+The secret tokens are mounted to pods using a volume
+
+<li>
+you <em>CANNOT edit the service account of an existing pod</em>
+
+<li>
+however, you <em>CAN edit the servie account of a deployment</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-IMAGE SECURITY"><h3 id="IMAGE SECURITY" class="header"><a href="#CORE CONCEPTS-SECURITY-IMAGE SECURITY">IMAGE SECURITY</a></h3></div>
+<ul>
+<li>
+When we don't specify a registry the default is <em>Docker Hub</em>
+
+<li>
+We can specify a <em>private registry</em>:
+
+<ul>
+<li>
+How do we authenticate with the private registry?
+
+<li>
+We create a "docker-registry" secret with kubectl
+
+<li>
+then specify "imagePullSecrets" on our pod-definition file and point to the secret
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-SECURITY CONTEXTS"><h3 id="SECURITY CONTEXTS" class="header"><a href="#CORE CONCEPTS-SECURITY-SECURITY CONTEXTS">SECURITY CONTEXTS</a></h3></div>
+<ul>
+<li>
+You may choose to configure security settings at the <em>container level</em> or the <em>pod level</em>
+
+<li>
+"securityContext" field under the <em>spec</em>
+
+<li>
+to do this at a <em>container level</em> move this field underneath the "containers" field
+
+<li>
+Capabilities are <span id="CORE CONCEPTS-SECURITY-SECURITY CONTEXTS-only available"></span><strong id="only available">only available</strong> at the <em>container level</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-SECURITY-NETWORK POLICY"><h3 id="NETWORK POLICY" class="header"><a href="#CORE CONCEPTS-SECURITY-NETWORK POLICY">NETWORK POLICY</a></h3></div>
+<ul>
+<li>
+Ingress &amp; Egress Traffic
+
+<li>
+Whatever solution you use, the pods <em>MUST</em> be able to communicate with each other without setting up additional settings like routes
+
+<li>
+By default, k8s is configured with an <em>"all allow"</em> rule that enables traffic from any pod to any other pod or service in the cluster
+
+<li>
+When you want to disable traffic from say your UI pod to the DB pod you can set up a <em>network policy</em> and link it to the DB pod
+
+<ul>
+<li>
+Labels and selectors!
+
+</ul>
+<li>
+Network policies are enforced by the <em>networking solution</em> implemented on the k8s cluster
+
+<li>
+Not all solutions <em>SUPPORT network policies</em>
+
+<ul>
+<li>
+flannel for example DOES NOT support network policies
+
+</ul>
+<li>
+podSelector / namespaceSelector / ipBlock
+
+</ul>
+
+<div id="CORE CONCEPTS-STORAGE"><h2 id="STORAGE" class="header"><a href="#CORE CONCEPTS-STORAGE">STORAGE</a></h2></div>
+<ul>
+<li>
+Storage Drivers vs. Volume Drivers
+
+<li>
+Container runtime interface defines how an orchestration solution like k8s communicates with container runtimes like Docker, rkt, cri-o
+
+<li>
+<em>Container storage interface</em> -&gt; meant to be a universal standard:
+
+<ul>
+<li>
+Defines a set of RPCs that will be called by the container orchestrator and these must be implemented by the storage drivers
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-STORAGE-VOLUMES"><h3 id="VOLUMES" class="header"><a href="#CORE CONCEPTS-STORAGE-VOLUMES">VOLUMES</a></h3></div>
+<ul>
+<li>
+"volumes" under the <em>spec field</em> and then you mount the volume with "volumeMounts" under the <em>containers field</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-STORAGE-PERSISTENT VOLUMES"><h3 id="PERSISTENT VOLUMES" class="header"><a href="#CORE CONCEPTS-STORAGE-PERSISTENT VOLUMES">PERSISTENT VOLUMES</a></h3></div>
+<ul>
+<li>
+Previous solution had us setting up the volume for each pod but it gets tedious quite fast
+
+<li>
+<em>Persistent volumes</em> can help us
+
+<ul>
+<li>
+It is a cluster wide pool of storage volumes configured by an admin to be used by users deploying apps on the cluster
+
+<li>
+The users can now select storage from this pool with a <em>persistent volume claim</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-STORAGE-PERSISTENT VOLUME CLAIM"><h3 id="PERSISTENT VOLUME CLAIM" class="header"><a href="#CORE CONCEPTS-STORAGE-PERSISTENT VOLUME CLAIM">PERSISTENT VOLUME CLAIM</a></h3></div>
+<ul>
+<li>
+Once the PVC is created, k8s binds the persistent volumes to claims based on the request and the properties set on the volume
+
+<li>
+During the PVC binding process, k8s tries to find a PV that has sufficient capacity as requested by the claim
+
+<li>
+If there are multiple matches for a claim and you want to specify a specific PV:
+
+<ul>
+<li>
+use <em>selectors</em>!
+
+</ul>
+<li>
+"persistentVolumeReclaimPolicy"
+
+</ul>
+
+<p>
+TIP:
+</p>
+<ul>
+<li>
+Volume decouples the storage from the Container. Its lifecycle is coupled to a pod. It enables safe container restarts and sharing data between containers in a pod.
+
+<li>
+Persistent Volume decouples the storage from the Pod. Its lifecycle is independent. It enables safe pod restarts and sharing data between pods.
+
+</ul>
+
+<div id="CORE CONCEPTS-STORAGE-STORAGE CLASSES"><h3 id="STORAGE CLASSES" class="header"><a href="#CORE CONCEPTS-STORAGE-STORAGE CLASSES">STORAGE CLASSES</a></h3></div>
+<ul>
+<li>
+<span id="CORE CONCEPTS-STORAGE-STORAGE CLASSES-Static provisioning"></span><strong id="Static provisioning">Static provisioning</strong>: Let us say that you want to create a PV on Google Cloud, every time your applications require storage you would have to go on GC and <em>provision this storage</em> before creating the PV
+
+<li>
+<span id="CORE CONCEPTS-STORAGE-STORAGE CLASSES-Dynamic provisioning"></span><strong id="Dynamic provisioning">Dynamic provisioning</strong>: It would have been nice if the volume gets provisioned automatically whenever our application requires it
+
+<li>
+"storageClassName" on our PVC definition file after creating a <em>Storage Class</em> object
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING"><h2 id="NETWORKING" class="header"><a href="#CORE CONCEPTS-NETWORKING">NETWORKING</a></h2></div>
+<div id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING"><h3 id="SWITCHING ROUTING" class="header"><a href="#CORE CONCEPTS-NETWORKING-SWITCHING ROUTING">SWITCHING ROUTING</a></h3></div>
+<ul>
+<li>
+What is a network?
+
+<ul>
+<li>
+We have two systems (A and B) in order for A to reach B we <em>CONNECT them to a</em> <span id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING-switch"></span><strong id="switch">switch</strong>
+
+<li>
+To connect them to a <em>switch</em> we need an <span id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING-interface"></span><strong id="interface">interface</strong> on each host (physical or virtual)
+
+<li>
+"ip link" -&gt; to see the interfaces
+
+<li>
+We look at the <em>interface named eth0</em> that we will be using to connect to the switch
+
+<li>
+Let us assume it is a network with the address 192.168.1.0
+
+<li>
+We then assign the systems with IP addresses on the same network -&gt; "ip addr add 192.168.1.0/24 dev eth0" and "ip addr add 192.168.1.1/24 dev eth0" on the other machine
+
+<li>
+Once the links are up, and the IP addresses are assigned, the computers can now communicate with each other through the switch
+
+<li>
+<em>The switch can only enable communication within the network</em>
+
+</ul>
+<li>
+How does a system in one network reach a system in another?
+
+<ul>
+<li>
+A <em>router</em> helps connect two networks together
+
+<li>
+It connects to the separate networks and gets multiple IPs assigned for each network
+
+</ul>
+<li>
+When system B tries to send a packet to system C on another network, how does it know where the router is on the network?
+
+<ul>
+<li>
+The router is just another device on the network there could be many other such devices.
+
+<li>
+That's where we configure systems with a <em>gateway or a route</em>
+
+<li>
+Existing routing configuration -&gt; "route" command
+
+<li>
+To configure a <em>gateway</em> -&gt; "ip route add 192.168.2.0/24 (&lt;NETWORK_ADDRESS&gt;) via &lt;GATEWAY_IP&gt;"
+
+<li>
+This <em>NEEDS to be configured on all systems</em>
+
+</ul>
+<li>
+To access the internet, you add a route rule on your router:
+
+<ul>
+<li>
+In order not to add a rule for each website/machine on different networks on the internet:
+
+<ul>
+<li>
+You can just specify that <em>for any network that you don't know a route use this router as the default gateway</em>
+
+<li>
+"ip route add default via &lt;GATEWAY_IP&gt;"
+
+</ul>
+</ul>
+<li>
+How to set up a linux host as a router?
+
+<ul>
+<li>
+After setting up the gateway, and the routes you will still have an issue
+
+<li>
+By default, in Linux, packets are not forwarded from one interface to the next
+
+<li>
+This setting is governed by the system file at <span id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING-/proc/sys/net/ipv4/ip_forward"></span><strong id="/proc/sys/net/ipv4/ip_forward">/proc/sys/net/ipv4/ip_forward</strong>
+
+<li>
+Simply setting this value <em>DOES NOT persist through reboots</em>:
+
+<ul>
+<li>
+You must modify the same value in the <span id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING-/etc/sysctl.conf"></span><strong id="/etc/sysctl.conf">/etc/sysctl.conf</strong> file
+
+</ul>
+</ul>
+<li>
+WARNING: "ip" commands are also only valid until a <em>restart</em>:
+
+<ul>
+<li>
+Set them in the <span id="CORE CONCEPTS-NETWORKING-SWITCHING ROUTING-/etc/network/interfaces"></span><strong id="/etc/network/interfaces">/etc/network/interfaces</strong> file
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-DNS"><h3 id="DNS" class="header"><a href="#CORE CONCEPTS-NETWORKING-DNS">DNS</a></h3></div>
+<ul>
+<li>
+When you want to reach another machine without its IP address
+
+<li>
+You can do this by adding an entry to the <span id="CORE CONCEPTS-NETWORKING-DNS-/etc/hosts"></span><strong id="/etc/hosts">/etc/hosts</strong> file
+
+<li>
+The system trusts the <em>hosts file</em> whether or not it is actually true:
+
+<ul>
+<li>
+The system does not check if the other system is actually named <em>db</em> for example
+
+</ul>
+<li>
+You can have as many names as you want for the same system
+
+<li>
+Translating hostname to an IP address this way is known as <em>name resolution</em>
+
+<li>
+Since doing this for every machine will get tedious (also you would have to modify your hosts file every time the IP address of one of your machines changed):
+
+<ul>
+<li>
+We decided to move all these entries to <em>a single server</em>: <span id="CORE CONCEPTS-NETWORKING-DNS-DNS server"></span><strong id="DNS server">DNS server</strong>
+
+</ul>
+<li>
+We point all our hosts to look up that server if they need to resolve a hostname to an IP address
+
+<li>
+How do we do this?
+
+<li>
+Let us say our DNS server has an ip of 192.168.1.100
+
+<li>
+Every host has a <em>DNS configuration file</em> at <span id="CORE CONCEPTS-NETWORKING-DNS-/etc/resolv.conf"></span><strong id="/etc/resolv.conf">/etc/resolv.conf</strong>:
+
+<ul>
+<li>
+Add an entry into it specifying the name of the DNS server:
+
+<ul>
+<li>
+"nameserver 192.168.1.100"
+
+</ul>
+</ul>
+<li>
+What if you have an entry in both places?
+
+<ul>
+<li>
+/etc/hosts happens first
+
+<li>
+The order can be changed! -&gt; "nsswitch.conf" file
+
+</ul>
+<li>
+You can have multiple nameservers configured on your host!
+
+<li>
+Domain names?
+
+<ul>
+<li>
+You can cache the resolved IP for a time period
+
+</ul>
+<li>
+What would you do if you want to access web.mycompany.com internally with just using "web"?
+
+<ul>
+<li>
+You can add a "search mycompany.com" entry to your <span id="CORE CONCEPTS-NETWORKING-DNS-/etc/resolv.conf"></span><strong id="/etc/resolv.conf">/etc/resolv.conf</strong> file
+
+<li>
+When you say web mycompany.com will be appended after adding this entry
+
+</ul>
+<li>
+Record Types on the DNS Server?
+
+<ul>
+<li>
+A Record: IP to hostname
+
+<li>
+AAAA Record: IPv6 to hostname
+
+<li>
+CNAME: mapping one name to another
+
+</ul>
+<li>
+TIP: 
+
+<ul>
+<li>
+ping might not be the best tool to test DNS resolution 
+
+<li>
+maybe use "nslookup" but it DOES NOT consider entries in the <em>hosts file</em>!
+
+<li>
+"dig" is another tool to test DNS resolution 
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-NETWORK NAMESPACES"><h3 id="NETWORK NAMESPACES" class="header"><a href="#CORE CONCEPTS-NETWORKING-NETWORK NAMESPACES">NETWORK NAMESPACES</a></h3></div>
+<ul>
+<li>
+When you create a container, you want to make sure it <em>DOES NOT see any other processes</em> on the <span id="CORE CONCEPTS-NETWORKING-NETWORK NAMESPACES-host"></span><strong id="host">host</strong> or any other <span id="CORE CONCEPTS-NETWORKING-NETWORK NAMESPACES-containers"></span><strong id="containers">containers</strong>
+
+<li>
+We do this by creating a special <em>namespace</em> for it
+
+<li>
+Our host has its own <em>routing</em> and we want to seal these details from the container
+
+<li>
+To create a new network namespace:
+
+<ul>
+<li>
+"ip netns add &lt;NAME&gt;"
+
+</ul>
+<li>
+"ip netns exec &lt;NAME&gt; ip link" -&gt; this will run the "ip link" command inside the namespace we specified
+
+<li>
+How do you establish connectivity between two namespaces?
+
+<ul>
+<li>
+Use a <em>virtual ethernet pair</em> or a <em>virtual cable</em> (?)
+
+<li>
+It is often referred to as a <em>pipe</em>
+
+<li>
+"ip link add &lt;VETH1_NAME&gt; type veth peer name &lt;VETH2_NAME&gt;"
+
+<li>
+Now you need to attach each interface to the appropriate namespace:
+
+<ul>
+<li>
+"ip link set &lt;VETH_NAME&gt; netns &lt;NS_NAME&gt;
+
+</ul>
+<li>
+We can then assign IP addresses to each of these namespaces
+
+</ul>
+<li>
+What do you do when you have a lot of namespaces?
+
+<ul>
+<li>
+You create a <em>virtual network</em> inside your host, to do this you need a <em>virtual switch</em>
+
+<li>
+Linux Bridge / Open vSwitch
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-DOCKER NETWORKING"><h3 id="DOCKER NETWORKING" class="header"><a href="#CORE CONCEPTS-NETWORKING-DOCKER NETWORKING">DOCKER NETWORKING</a></h3></div>
+<ul>
+<li>
+Let's start with a single docker host. A server with Docker installed on it.
+
+<li>
+It has an ethernet interface <em>"eth0"</em> that connects to the local network with the IP address 192.168.1.10
+
+<li>
+When you run a container, you have different networking options:
+
+<ul>
+<li>
+None:
+
+<ul>
+<li>
+Docker container is <em>NOT attached to any network</em>
+
+<li>
+The container cannot reach the outside world, and no one from the outside can reach them
+
+</ul>
+<li>
+Host:
+
+<ul>
+<li>
+The container is attached to the host's network
+
+<li>
+There is <em>NO network isolation between the container and the host</em>
+
+</ul>
+<li>
+Bridge:
+
+<ul>
+<li>
+An <em>internal private network</em> is created which the docker host and containers attach to 
+
+<li>
+172.17.0.0 is the default address and each device connecting to this network get their own internal private network address
+
+<li>
+When Docker is installed on the host machine, it creates an <em>internal private network</em> called <span id="CORE CONCEPTS-NETWORKING-DOCKER NETWORKING-bridge"></span><strong id="bridge">bridge</strong> by default
+
+<li>
+On the host, this same network is called "docker0"
+
+<li>
+Whenever a container is created, Docker creates a <em>network namespace</em> for it
+
+<li>
+Creates a <em>pair of interfaces</em>, attaches one end to the container and another to the bridge network
+
+<li>
+TIP: the interface pairs can be identified by their numbers: odd and even makes up a cable
+
+</ul>
+</ul>
+<li>
+IPTables NAT rule -&gt; to port forward
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-CNI (COMPUTER NETWORKING INTERFACE)"><h3 id="CNI (COMPUTER NETWORKING INTERFACE)" class="header"><a href="#CORE CONCEPTS-NETWORKING-CNI (COMPUTER NETWORKING INTERFACE)">CNI (COMPUTER NETWORKING INTERFACE)</a></h3></div>
+<ul>
+<li>
+Since all the different containerization options out there (rkt, mesos k8s) deal with networking with similar steps there was a need for a <em>standard approach</em>
+
+<li>
+CNI is a <em>set of standards that define how programs should be developed to solve networking challenges in container runtime environments</em>
+
+<li>
+WARNING: Docker <em>DOES NOT implement CNI</em>. It has its own set of standards known as CNM (Container Network Model)
+
+<li>
+You can still use the CNI with Docker you just need to do things manually; that is how k8s does it.
+
+<li>
+When k8s creates containers it creates them on the <em>none network</em>. It then invokes the configured CNI plugins and they take care of the rest of the configuration.
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-CLUSTER NETWORKING"><h3 id="CLUSTER NETWORKING" class="header"><a href="#CORE CONCEPTS-NETWORKING-CLUSTER NETWORKING">CLUSTER NETWORKING</a></h3></div>
+<ul>
+<li>
+Each node must have at least one interface connected to a network
+
+<li>
+Each interface must have an address configured
+
+<li>
+The hosts must have a unique hostname, and a MAC address set:
+
+<ul>
+<li>
+you should note this especially if you created the VMs by cloning from existing ones
+
+</ul>
+<li>
+There are some ports that need to be opened:
+
+<ul>
+<li>
+These are used by various components in the control plane
+
+<li>
+Master should have <em>6443 open for kube api server</em>
+
+<li>
+Kubelets on both master and worker nodes listen on <em>10250</em>
+
+<li>
+The scheduler needs <em>10251</em>
+
+<li>
+Controller manager needs <em>10252</em>
+
+<li>
+The worker nodes expose services for <em>external access on ports 30000-32767</em>
+
+<li>
+Finally, the <em>etcd server</em> listens on <em>2379</em>
+
+<li>
+WARNING: if you have multiple master nodes you need <em>2380</em> open as well so the etcd clients can communicate
+
+</ul>
+</ul>
+
+<p>
+TIP:
+Some useful commands "netstat -plnt" (to look up which ports are being used by which services) / "arp" (to look up the MAC address)
+"ip route show default" (to look up default gateway)
+</p>
+
+<div id="CORE CONCEPTS-NETWORKING-POD NETWORKING"><h3 id="POD NETWORKING" class="header"><a href="#CORE CONCEPTS-NETWORKING-POD NETWORKING">POD NETWORKING</a></h3></div>
+<ul>
+<li>
+There is no default solution you need to implement this
+
+<li>
+However, k8s lays out the fundamental requirements for you:
+
+<ul>
+<li>
+Every pod should have an IP address
+
+<li>
+Every pod should be able to communicate with every other pod in the same node
+
+<li>
+Every pod should be able to communicate with every other pod on other nodes without NAT
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-CNI IN K8S"><h3 id="CNI IN K8S" class="header"><a href="#CORE CONCEPTS-NETWORKING-CNI IN K8S">CNI IN K8S</a></h3></div>
+<ul>
+<li>
+"ps aux | grep kubelet" -&gt; to see cni options
+
+<li>
+<em>/opt/cni/bin</em> has all the supported CNI plugins
+
+<li>
+<em>/etc/cni/net.d</em> has a set of config files
+
+<ul>
+<li>
+WARNING: if there are multiple files here it will choose the one in <em>alphabetical order</em>
+
+</ul>
+</ul>
+
+<p>
+QUESTION: What does Kloia do for the networking solution? I don't think we install weave but how does Rancher handle this?
+</p>
+
+<p>
+TIP: "kubectl exec -ti &lt;POD_NAME&gt; -- sh" to create a shell
+</p>
+
+<div id="CORE CONCEPTS-NETWORKING-SERVICE NETWORKING"><h3 id="SERVICE NETWORKING" class="header"><a href="#CORE CONCEPTS-NETWORKING-SERVICE NETWORKING">SERVICE NETWORKING</a></h3></div>
+<ul>
+<li>
+You would <em>rarely</em> configure your pods to communicate directly with each other
+
+<li>
+If you want a pod to access some service on another pod you would always use a <span id="CORE CONCEPTS-NETWORKING-SERVICE NETWORKING-service"></span><strong id="service">service</strong>
+
+<li>
+When a <em>service</em> is created, it is <span id="CORE CONCEPTS-NETWORKING-SERVICE NETWORKING-accessible"></span><strong id="accessible">accessible</strong> from all pods on the cluster
+
+<ul>
+<li>
+NodePort - exposing things to the outside world
+
+<li>
+ClusterIP - access inside the cluster
+
+</ul>
+<li>
+How do these services get IP addresses and how are they available on all nodes?
+
+<li>
+kube-proxy gets into action whenever a new service is to be created on a node:
+
+<ul>
+<li>
+services are a <em>cluster wide concept</em>!
+
+<li>
+services are just a virtual object
+
+</ul>
+<li>
+When we create a service, it is assigned an IP from a <em>predefined range</em>
+
+<li>
+The kube proxy component running on each node gets that IP and creates forwarding rules on each node in the cluster:
+
+<ul>
+<li>
+Three options for this:
+
+<ul>
+<li>
+userspace
+
+<li>
+iptables (default)
+
+<li>
+ipvs
+
+</ul>
+</ul>
+<li>
+TIP: "--service-cluster-ip-range" in the kube-api-server options -&gt; to see the default IP range
+
+<li>
+WARNING: Your pod network CIDR range <em>SHOULD NOT</em> overlap with this IP range:
+
+<ul>
+<li>
+There shouldn't be a case where a pod and a service are assigned the same IP address
+
+</ul>
+<li>
+You can see the rules created by the kube-proxy in the IP tables NAT table output:
+
+<ul>
+<li>
+"iptables -L -t nat | grep &lt;SERVICE_NAME&gt;"
+
+</ul>
+<li>
+You can also see these in the kube-proxy logs:
+
+<ul>
+<li>
+"/var/log/kube-proxy.log" -&gt; <em>the location of this file might change</em>
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-DNS IN K8S"><h3 id="DNS IN K8S" class="header"><a href="#CORE CONCEPTS-NETWORKING-DNS IN K8S">DNS IN K8S</a></h3></div>
+<ul>
+<li>
+The <em>node names</em> and <em>IP addresses</em> of the cluster are probably registered in a DNS server in your org.
+
+<li>
+Whenever a service is created, the k8s DNS service creates a record for the newly created service: it maps the service name to the IP address
+
+<li>
+If the service was in a <em>different namespace</em> than the one we are trying to access from we would access it using its namespace too:
+
+<ul>
+<li>
+"web-service.apps" for example if the service was in the <em>apps namespace</em>
+
+</ul>
+<li>
+For each namespace, the DNS server creates a <span id="CORE CONCEPTS-NETWORKING-DNS IN K8S-subdomain"></span><strong id="subdomain">subdomain</strong>
+
+<li>
+All the services are grouped together into another subdomain called <span id="CORE CONCEPTS-NETWORKING-DNS IN K8S-SVC"></span><strong id="SVC">SVC</strong>
+
+<li>
+All the services and pods are grouped together into a root domain for the cluster <span id="CORE CONCEPTS-NETWORKING-DNS IN K8S-cluster.local"></span><strong id="cluster.local">cluster.local</strong> (by default)
+
+<li>
+Records for pods are <em>NOT</em> created by default but we <em>CAN enable it explicitly</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-COREDNS IN K8S"><h3 id="COREDNS IN K8S" class="header"><a href="#CORE CONCEPTS-NETWORKING-COREDNS IN K8S">COREDNS IN K8S</a></h3></div>
+<ul>
+<li>
+After v1.12, the recommended DNS server is "CoreDNS"
+
+<li>
+k8s deploys a DNS server for DNS resolution purposes
+
+<li>
+The CoreDNS pod watches the k8s cluster for new pods and services, and every time a pod or service is created, it adds a record for it in its database
+
+<li>
+What address do the pods use to reach the CoreDNS server?
+
+<ul>
+<li>
+When we deploy the CoreDNS solution, it also creates a service to make it available to other components within the cluster
+
+<li>
+the service is <em>kube-dns</em> by default
+
+<li>
+The IP address of this service is configured as the nameserver on pods
+
+<li>
+<em>kubelet</em> does this!
+
+</ul>
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-INGRESS"><h3 id="INGRESS" class="header"><a href="#CORE CONCEPTS-NETWORKING-INGRESS">INGRESS</a></h3></div>
+<ul>
+<li>
+Services vs Ingress?
+
+<ul>
+<li>
+Service NodePorts can only allocate high numbered ports greater than 30000
+
+<li>
+You add a proxy-server to proxy requests on port 80 to port 38080
+
+<li>
+Then, you point your DNS to this server
+
+<li>
+If you are on the cloud, you can just use the Cloud solution for Load Balancing
+
+<li>
+However, when you introduce a new service (for example market and video streaming) you would need to deploy a new load balancer:
+
+<ul>
+<li>
+This gets <em>COSTLY</em>, and having many load balancers can inversely affect your cloud build
+
+<li>
+To direct traffic between these two services and their load balancers you would need a third load balancer to direct requests depending on the URL path (/watch and /market for example)
+
+<li>
+You also need SSL and where do you implement this?
+
+</ul>
+</ul>
+<li>
+<span id="CORE CONCEPTS-NETWORKING-INGRESS-Ingress"></span><strong id="Ingress">Ingress</strong> helps your users access your application using a <em>single externally accessible URL</em>, that you can configure to route to different services within your cluster based on the URL path and implements SSL security
+
+<li>
+A Layer 7 load balancer built into the k8s cluster
+
+<li>
+WARNING: You still <em>need to</em> expose the Ingress to the outside world, so you either need a NodePort or a LoadBalancer
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-INGRESS CONTROLLER"><h3 id="INGRESS CONTROLLER" class="header"><a href="#CORE CONCEPTS-NETWORKING-INGRESS CONTROLLER">INGRESS CONTROLLER</a></h3></div>
+<ul>
+<li>
+Different solutions available:
+
+<ul>
+<li>
+GCE (google)
+
+<li>
+Nginx
+
+<li>
+Haproxy
+
+<li>
+traefik
+
+<li>
+istio
+
+</ul>
+<li>
+Deploy it as a <em>deployment</em> on the cluster -&gt; 1 replica / image is <em>nginx-ingress-controller</em>
+
+<li>
+You must pass in <em>/nginx-ingress-controller</em> as an argument to start the service
+
+<li>
+In order to, <em>decouple the configuration data</em> from the image you must create a <span id="CORE CONCEPTS-NETWORKING-INGRESS CONTROLLER-ConfigMap"></span><strong id="ConfigMap">ConfigMap</strong> object and pass that in
+
+<li>
+You must also pass in, <em>two environment variables</em> that carry the pod's name and namespace it is deployed to
+
+<li>
+Finally, specify the ports used by the ingress controller (80 and 443)
+
+<li>
+Create the <em>ingress service (NodePort)</em>
+
+<li>
+Ingress needs a <em>service account</em> with the right set of permissions
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-INGRESS RESOURCE"><h3 id="INGRESS RESOURCE" class="header"><a href="#CORE CONCEPTS-NETWORKING-INGRESS RESOURCE">INGRESS RESOURCE</a></h3></div>
+<ul>
+<li>
+A set of rules and configurations applied on the ingress controller
+
+<li>
+"kind: Ingress"
+
+<li>
+You set up different rules
+
+<li>
+There is a <em>default backend</em> url in the ingress deployment you must set up such a service to catch requests not matching any other rule
+
+</ul>
+
+<p>
+How does etcd ensure consistency between different servers in HA mode when there are multiple etcd instances?
+</p>
+<ul>
+<li>
+What if two write requests come in to two instances?
+
+<li>
+Only one instance is responsible for processing the writes. Internally, the nodes elect a leader among them
+
+<li>
+If the request came in through the leader node it processes the request and makes sure the other nodes have a copy of the data
+
+<li>
+If the request comes to one of the <em>follower nodes</em> they forward it to the leader
+
+<li>
+etcd implements <em>distributed consensus</em> with the <span id="CORE CONCEPTS-NETWORKING-INGRESS RESOURCE-RAFT protocol"></span><strong id="RAFT protocol">RAFT protocol</strong>
+
+<li>
+A write is considered to be <em>complete</em> if it can be written on the majority of nodes in the cluster! (if there are 3 nodes, 2 nodes is enough for a write to be complete)
+
+<li>
+<em>quorum</em> -&gt; the minimum number of nodes that must be available for the cluster to function properly or make a sucessful write
+
+<ul>
+<li>
+n/2 + 1
+
+</ul>
+<li>
+instances - quorum = <em>fault tolerance</em>
+
+</ul>
+
+<div id="CORE CONCEPTS-NETWORKING-TROUBLESHOOTING"><h3 id="TROUBLESHOOTING" class="header"><a href="#CORE CONCEPTS-NETWORKING-TROUBLESHOOTING">TROUBLESHOOTING</a></h3></div>
+<p>
+TIP: "kubectl cluster-info" -&gt; shows master node IP:PORT
+TIP: "journalctl -u kubelet"
+</p>
+
+<div id="CORE CONCEPTS-NETWORK TROUBLESHOOTING"><h2 id="NETWORK TROUBLESHOOTING" class="header"><a href="#CORE CONCEPTS-NETWORK TROUBLESHOOTING">NETWORK TROUBLESHOOTING</a></h2></div>
+<ul>
+<li>
+<em>kubelet</em> configs are where you can see the relevant network plugin
+
+<li>
+cni-bin-dir:   Kubelet probes this directory for plugins on startup
+
+<li>
+network-plugin: The network plugin to use from cni-bin-dir. It must match the name reported by a plugin probed from the plugin directory.
+
+</ul>
+
+<ul>
+<li>
+for <em>kube-proxy issues</em> look at the daemonset / check the configmap for the configuration file to see whether or not paths match between the command used and the configmap
+
+</ul>
+
+<p>
+=========================
+</p>
+
+<p>
+Kubernetes resources for coreDNS are:   
+</p>
+
+<p>
+a service account named coredns,
+cluster-roles named coredns and kube-dns
+clusterrolebindings named coredns and kube-dns, 
+a deployment named coredns,
+a configmap named coredns and a
+service named kube-dns.
+</p>
+
+<p>
+While analyzing the coreDNS deployment you can see that the Corefile plugin consists of important configuration which is defined as a configmap.
+</p>
+
+<p>
+Troubleshooting issues related to coreDNS
+</p>
+<ol>
+<li>
+If you find CoreDNS pods in pending state first check network plugin is installed.
+
+</ol>
+
+<ol>
+<li>
+If CoreDNS pods and the kube-dns service is working fine, check the kube-dns service has valid endpoints.
+
+</ol>
+<p>
+kubectl -n kube-system get ep kube-dns
+</p>
+
+<p>
+If there are no endpoints for the service, inspect the service and make sure it uses the correct selectors and ports.
+</p>
+
+<p>
+Troubleshooting issues related to kube-proxy
+</p>
+<ol>
+<li>
+Check kube-proxy pod in the kube-system namespace is running.
+
+<li>
+Check kube-proxy logs.
+
+<li>
+Check configmap is correctly defined and the config file for running kube-proxy binary is correct.
+
+<li>
+kube-config is defined in the config map.
+
+<li>
+check kube-proxy is running inside the container
+
+</ol>
+
+<p>
+======================
+</p>
+
+<p>
+TIP: You <em>CANNOT</em> record the initial deployment creation with imperative commands however you can use the <span id="CORE CONCEPTS-NETWORK TROUBLESHOOTING---record"></span><strong id="--record">--record</strong> flag with <span id="CORE CONCEPTS-NETWORK TROUBLESHOOTING-kubectl apply"></span><strong id="kubectl apply">kubectl apply</strong>
+ex. *"kubectl apply -f test.yaml --record"
+</p>
+
+<div id="CORE CONCEPTS-MISCELLANEOUS TIPS"><h2 id="MISCELLANEOUS TIPS" class="header"><a href="#CORE CONCEPTS-MISCELLANEOUS TIPS">MISCELLANEOUS TIPS</a></h2></div>
+<p>
+TIP: most of the time you need <em>"sh -c"</em> before your commands to get them working inside the containers
+TIP: DaemonSets <em>DO NOT</em> override taints &amp; tolerations, so you need to specify the toleration if you want your DS to run on master nodes
+TIP: If you want your pods to run only once on specific nodes, you can set up <em>pod affinity and anti pod affinity</em> rules
+TIP: to get Pod CIDR you can look at <em>"kubectl describe nodes"</em> output
+TIP: <em>default kubelet cni config path</em> is <span id="CORE CONCEPTS-MISCELLANEOUS TIPS-/etc/cni/net.d"></span><strong id="/etc/cni/net.d">/etc/cni/net.d</strong>
+TIP: you can use <em>"kubeadm token create --print-join-command"</em> to get a join command for a node that was not initially set up in your cluster configured with <em>kubeadm</em>
+TIP: <em>"--no-headers"</em> is a flag you can use to get rid of headers for your k8s commands
+</p>
+
+</body>
+</html>

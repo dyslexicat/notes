@@ -1,0 +1,821 @@
+= WEEK 1 =
+- Aimed at people responsible for managing multiple k8s clusters with Rancher
+
+- Lab Environment
+rmt server must be up and running
+k3s -> 1 node server rancher server
+existing rke cluster - 1 control & 2 worker nodes
+not highly available and fault tolerant because only we only have 1 control plane
+not enough hardware in this case
+
+rke cluster-2
+this will be deployed by rancher server
+
+the first cluster will be registered
+
+- Certification Options
+70 questions / 90 mins
+from this material
+
+- Additional SUSE Training
+Other training is available
+
+- Lab Environment Setup
+6 virtual machines
+rmt server is needed for other VMs to be running
+rmt is the only one with a GUI
+
+edit etc/hosts if you want to connect using hostnames instead of IPs
+password will be "linux" for all these trainings
+
+we can do a ping for each rancher machine inside the rmt ssh connection to see if we are communicating
+"for NODE in rancher rke control01 worker01 worker02 ; do ping $NODE.example.com -c1 | grep received ; echo ; done"
+
+"kubectl get nodes" -> cluster already deployed and we can see all the nodes
+in the training those nodes show up with "SchedulingDisabled" and if we want them to be available for scheduling we need to run
+"kubectl uncordon NODE_NAMES"
+
+if we want to gracefully shut down the cluster we need to _cordon_ the nodes to make them SchedulingDisabled
+ 
+= WEEK 2 =
+- Company vs. Product
+SUSE Rancher -> previously called Rancher Labs OSS company.
+Acquired by SUSE in 2020, founded in 2014
+
+Rancher -> multi-cluster k8s container management platform at scale
+Deployed as k8s app
+aka Rancher Server
+
+== RANCHER ARCHITECTURE ==
+Production level k8s management
+- On-prem, Cloud, Hybrid
+- multiple k8s distributions supported
+- New clusters can be provisioned or existing ones can be registered
+
+Architecture (bottom to top)
+OS -> SUSE Enterprise Linux
+K8s -> Datacenter (RKE) / Cloud (Amazon EKS, Google GKE etc.) / k3s
+SUSE Rancher:
+- Security & Auth
+  - Active Directory
+  - OKTA
+  - Saml
+- Simplified Cluster Ops & Infra Management
+  - K8s version management
+  - GitOps CD
+  - Cluster Templates & Config Enforcement
+  - Node Pool Management
+  - Cluster Provisioning & Lifecycle Management
+- Policy Enforcement & Governance
+  - Centralized audit
+  - Monitoring & logging
+  - CIS benchmarking (?) -> _Security benchmarks_
+  - RBAC, OPA, Pod & Network Policies (?) -> _RBAC: role based access controls_
+- Platform Services
+  - Rancher Catalog
+  - Monitoring & Alerts
+  - Dashboards & Observability
+  - Service Mesh (Istio)
+  - Terraform Operator
+  - Longhorn Storage
+Applications (App 1 / App 2 / App 3)
+
+== RANCHER VALUE POINTS ==
+- Can manage any k8s cluster v1.16.15 or newer
+- Easy installation with HELM chart
+- Central authentication
+  - Internal/local to Rancher
+  - External such as OpenLDAP, Active Directory, Github
+- Provides _single point of administration_
+- Role-based access control (RBAC) for all clusters
+
+== RANCHER TERMINOLOGY ==
+- Rancher Server (HELM chart to be deployed)
+  - Manages and provisions k8s clusters
+  - Interacts with downstream k8s clusters through Rancher GUI and CLI
+- RKE - Rancher k8s Engine
+  - CNCF certified k8s distribution
+  - CLI/library used to create and manage a k8s cluster
+- k3s - lightweight k8s
+  - CNCF certified k8s distribution
+  - easier to use
+  - lightweight
+  - ideal for one node edge clusters
+
+== RANCHER MANAGEMENT CLUSTER ==
+- Rancher is a k8s app
+- Basic setup for high availability requires
+  - 3 etcd nodes
+    - Internal cluster DB
+    - Can co-exist with control plane nodes
+  - 3 control plane nodes
+    - Rancher management functionality
+    - Can co-exist with etcd nodes
+  - 3 worker nodes
+    - Runs the user workload
+    - None for Rancher
+
+We would have a Load Balancer in front of this RKE Cluster with 3 of these (etcd/worker/control nodes) where the Cluster data lives in the etcd node
+Larger systems you would have everything separated in different VMs
+but etcd nodes can live with control nodes if we don't want to separate everything
+
+You need an *uneven number* (odd) of _etcd nodes_ to figure out if a node has died
+etcd nodes are _stateful_
+
+2 control nodes would be enough for a minimal setup
+Control nodes are _stateless_
+
+== RANCHER SOFTWARE ==
+- Majority of Rancher software runs on the Rancher Server
+- Contains everything required to manage the entire Rancher deployment
+  - Communicates with the downstream clusters via API provided by cluster or node agent
+- Rancher server should be dedicated to run only Rancher!
+  - For security and best performance
+  - User workloads are to be run on the downstream clusters
+
+== AUTHENTICATION AND CLUSTER ACCESS ==
+- Authentication Proxy
+  - Authenticates the caller
+  - Sets the proper k8s impersonation headers
+  - Forwards k8s API calls to downstream clusters
+- Integrated authentication services
+  - Local authentication, Active Directory, OpenLDAP, etc.
+
+Auth proxy runs inside the _Rancher Server_ when a user runs a command for example "kubectl get pods" it goes through the proxy first then goes to the relevant
+Client controller which sends the request to the downstream clusters
+
+If a user has the kubeconfig file for the relevant cluster they _CAN_ communicate with that cluster directly through the K8s API Server
+
+== CLUSTER CONTROLLER ==
+- Watches for _resource changes_ in the downstream cluster
+- Brings the current state of the downstream cluster to the desired state
+- Configures access control policies to clusters and projects
+- Provisions clusters by calling
+  - Docker machine drivers (EC2 etc.)
+  - K8s engines (RKE, GKE, etc.)
+
+== DOWNSTREAM CLUSTERS ==
+- Managed by Rancher
+- Uses _standard k8s API_ through the _Cluster Agent_
+  - Each node runs Node Agent for node-specific activities
+    - Node Agent runs as a DaemonSet
+- Downstream clusters run the apps and services on the worker nodes
+
+== HOSTED k8s PROVIDERS ==
+- K8s can be provisioned by cloud providers
+- Rancher integrates with the cloud providers API
+  - Allows RBAC from the Rancher UI
+
+== RANCHER LAUNCHED K8s ==
+- Provisions RKE on existing nodes
+  - Rancher UI calls Docker on the node to deploy the nodes
+  - Adds nodes to teh cluster via Rancher cluster agent container
+  - Rancher provides a versioned installation scripts for deploying the correct version of Docker for your chosen Linux flavor
+- Can be deployed on
+  - Bare metal server
+  - Virtualization platform
+  - Cloud provider virtual machines with EC2, Azure, Google etc.
+    - Deploys first the nodes, then k8s on them
+
+By nodes they mean VMs like in the first lab
+
+== REGISTERED K8s CLUSTERS WITH CUSTOM DRIVER ==
+- Rancher communicates with a k8s cluster that is already up and running
+
+== DIFFERENCES BETWEEN THESE THREE ==
+- Infrastructure and Custom clusters
+  - All features are available within Rancher
+- Hosted provider clusters
+  - Lifecycle management
+  - No access to the data plane or control plane
+    - Unable to backup or restore
+- Registered clusters
+  - Communication only via K8s API
+    - No lifecycle management
+    - Unable to backup or restore
+    - Provider's or general utilities must be used for business continuity
+
+== CLUSTER AGENT ==
+1 cluster agent multiple node agents
+
+- Downstream clusters run a cluster agent
+- Cluster agent
+  - Connects to the k8s API on Rancher-launched k8s clusters
+  - Watches for resource changes in the downstream cluster
+  - Brings the current state of the downstream cluster to the desired state
+  - Configures access control policies to clusters and projects
+  - Provisions clusters by calling the required k8s engines, docker machine drivers, or docker
+  - Manages workloads, pod creation, and deployment within each cluster
+  - Applies the roles and bindings defined in each cluster's global policies
+  - Provides Rancher server information about events, stats, node info, and health
+
+== NODE AGENT ==
+- If a cluster agent is not available for the target, one of the node agents creates a tunnel to the cluster controller to communicate with Rancher
+- Node agent is deployed as k8s DaemonSet to ensure it runs on every node in the cluster
+- Node agent interaction is used for
+  - Upgrading the k8s version
+  - creating or restoring etcd snapshots
+
+== ACCESSING RANCHER UI ==
+- Rancher itself is deployed as a k8s app
+- The default name for Rancher cluster is _local_
+
+== RANCHER POST-INSTALL CONFIG ==
+- The system admin has teh ability to configure and fine-tune Rancher for various settings
+  - Authentication
+  - Authorization
+  - Security
+  - Security policies
+  - Drivers
+  - Global DNS entries
+  - Default settings
+
+By default only _admin_ user is created
+
+== GLOBAL CLUSTER VIEW ==
+Global -> Global
+- Settings
+  - Rancher config
+  - RKE template enforcement
+  - Location for metadata updates
+- Security
+  - User, Group, and Role management
+- Tools
+  - Cluster and node drivers
+  - RKE Templates
+
+Global -> Global lists available clusters
+
+Global -> local
+- Rancher-specific projects
+- Default
+  - For user defined default namespaces
+  - None for default Rancher
+- System
+  - rancher and k8s namespaces
+
+Cluster Dashboard -> displays basic utilization info about the selected cluster
+Cluster Events -> a list of recent events for the cluster
+
+LAB 2.1 -> you gotta do the /etc/hosts changes according to the Week 1 vid
+172.30.201.2 rmt.example.com rmt
+172.30.201.3 rancher.example.com rancher
+172.30.201.11 control01.example.com control01
+172.30.201.12 rke.example.com rke
+172.30.201.21 worker01.example.com worker01
+172.30.201.22 worker02.example.com worker02
+
+== INTERACTING WITH CLUSTERS ==
+Either through GUI or CLI
+You need a token to use the CLI
+
+Rancher API
+- API endpoint and user keys can be found through the _avatar icon_
+- Admins can manage clusters and projects based on the scope and the Time-to-Live value of the API key
+  - Every API request must include a token for the auth info
+  - Key management abilities are managed by RBAC
+
+Q1 - What kind of clusters can be managed with the Rancher server?
+Q2 - What does _downstream cluster_ mean?
+Q3 - How does Rancher manage k8s clusters?
+Q4 - What are the names of the projects that are automatically created on Rancher provisioned clusters?
+
+Registering and importing are synonyms in terms of registering existing k8s clusters
+A _node agent_ runs on every node of the cluster
+
+= WEEK 3 =
+
+== Multi-Cluster Management UI ==
+- Editing a node:
+  - Change the node name
+  - Node description
+  - Manage k8s labels
+    - Usable for management tasks for a group of nodes, containers, etc.
+  - Manage taints
+    - Taints are used to _manage scheduling_, namely restrict pods not to run on a node
+
+== MANAGE NODE & CLUSTER DRIVERS ==
+Global Cluster View -> Add Cluster -> 3 different types of adding a cluster to Rancher
+
+== DRIVER MANAGEMENT ==
+2 types of drivers within rancher
+- Node Drivers
+- Cluster Drivers
+
+Existing built-in drivers can be enabled-disabled
+- Not all built-in drivers are enabled by default
+- Only enabled node and cluster drivers will be displayed in UI forms
+
+New drivers can be added
+- Understanding about the corresponding API definition is required
+- Could be provided as a download from the provider
+
+1. Node Drivers
+- For node provisioning
+  - Used to launch and manage k8s clusters
+  - Docker based RKE deployments
+- Built-in drivers for infrastructure providers (EC2, DO, Azure, Google, vSphere)
+
+== MANAGE NODE DRIVERS ==
+Global -> Tools -> Drivers -> Node Drivers (to activate/deactivate)
+
+== ADD A CLUSTER WITH NODE DRIVER ==
+- Node pools are configured at infrastructure provider
+  - RKE is deployed based on the node pools
+  - K8s version and other RKE settings are based on a Node Template
+
+3 pools -> 1 for etcd, 1 for control plane, 1 for worker nodes
+! By creating a separate pool you have better control over possible scaling requirements
+You need to have a node template before creating nodes
+Auto-replace option -> in case a node fails after X minutes the system will create a new node for that pool
+
+== ADD A CLUSTER WITH CUSTOM DRIVER ==
+- RKE cluster is provisioned on existing nodes
+  - Very detailed config options
+  - A role for each of the nodes are selected and deployed
+
+etcd / control plane / worker nodes
+3/3/4 you would need to configure this setting 3 times
+copy paste the config command 10 times to your nodes
+
+== REGISTER AN EXISTING K8s CLUSTER ==
+- Specific commands for Rancher agent deployment are provided
+
+2. Cluster Drivers
+- Rancher provides built in drivers for the most common cloud providers for k8s cluster provisioning
+  - Amazon EKS
+  - Azure AKS
+  - Google GKE
+
+== ADD A HOSTED CLUSTER ==
+- Plenty of config options
+  - Cloud credentials, k8s version, network, security group, and autoscaling group details
+
+! You need to choose your region
+
+== VIEW CLUSTER AND NODE AGENTS ==
+- Cluster Agent
+- named _cattle-cluster-agent_
+- Deployed on the Rancher-launched k8s clusters
+  - The type of the k8s resource is *Deployment*
+  - This means that in case the pod will be shutdown (crashes) a new instance will automatically start by k8s
+- Connects to the k8s API of the cluster
+- Global -> <CLUSTER> -> System -> cattle-cluster-agent
+
+- Node Agent
+- named _cattle-node-agent_
+- Deployed on the registered or hosted k8s clusters
+  - Type of the k8s resource is *DaemonSet*
+    - Runs on every node
+    - Responsible for backups or upgrading k8s version (node-specific)
+    - Multiple of these agents
+  - Interacts with the nodes
+  - Performs cluster ops such as k8s upgrades, snapshots, etc.
+- Global -> <CLUSTER> -> System -> cattle-node-agent
+
+== REGISTER AN EXISTING RKE CLUSTER ==
+-> Add Cluster in Global view
+Select *Other Cluster* as the cluster type
+Enter the name for the registered cluster and click *Create*
+
+== REGISTRATION DETAILS ==
+- Cluster registration info and requirements will be displayed
+  - Command boxes contain alternative ways for completing the cluster registration
+    - A valid _kubeconfig_ file to access the cluster must be available
+    - With self-signed certificates, the piped curl command must be used
+
+== UPDATED CLUSTER LIST ==
+- The registered RKE cluster will be listed
+  - For a healthy cluster, the state should be _Active_
+
+A minute or two to become active
+
+== PROVISION AN RKE CLUSTER ON EXISTING NODES ==
+Add Cluster -> Existing Nodes
+Enter cluster name -> Select k8s version -> select _network provider_
+
+== CLUSTER ROLES ==
+etcd / control plane / worker
+copy the command box contents
+
+== Activate Docker Containers on the Node ==
+- Run the command in the terminal on the cluster node
+  - Container images are downloaded and provided to local Docker service
+- From the Add Cluster window in Rancher UI
+  - _1 new node has registered_ message
+
+== RKE CLUSTER PROVISIONING ==
+Rancher UI displays RKE Cluster provisioning to have started
+  - States: _Provisioning, Waiting, Error, Updating, etc._
+  - It takes 5-10 minutes for the cluster to reach the _Active_ state
+- Repeat the config and provisioning of other nodes 
+
+Management options are different for _rancher launched_ clusters and _custom_ RKE clusters
+
+== PROVISION AN RKE CLUSTER IN AWS INFRA ==
+Click _avatar_ -> Cloud credentials
+Then you choose _Add cluster on EC2_
+You need add the node pools and configure everything
+
+== PROVISION AN EKS CLUSTER ==
+Global view -> Add cluster
+Clsuter type -> _Amazon EKS Nodes_
+Basic info about the EKS cluster
+
+_Networking_ -> public/private access also create a subnet or use an existing one
+SSH keys cannot be addded later
+
+_Autoscaling_ group is available
+
+You *need to* have your Rancher server as a _publically available_ from the internet for this to work
+
+== PROJECTS AND NAMESPACES ==
+- Namespace is a k8s concept that allows division to _virtual clusters_ with separate access control and resource quotas
+- Namespaces can contain:
+  - Workloads
+  - Services
+  - Ingresses
+  - Physical Volume Claims
+  - ConfigMaps
+  - Secrets
+  - and other k8s resources
+
+- Namespaces provide a _scope_
+  - Resource names need to be unique within a namespace
+  - Namespaces cannot be nested inside one another
+  - Each k8s resource can only exist in one namespace
+- Namespaces are used to _divide cluster resources_ between multiple users
+
+== PROJECTS ==
+- They help manage clusters by grouping namespaces
+  - Assigning resources at the project level allows each namespace in the project to use them
+    - You can give people access to multiple namespaces simultaneously
+    - Reduces potential human errors
+- Projects allows the admin to configure common
+  - RBAC
+  - ConfigMaps
+  - Secrets
+  - Certificates
+  - Private registry credentials
+
+== PROJECT ACCESS ==
+- Project Members:
+  - Owner
+  - Member
+    - Can manage resources in the project but cannot change the project itself
+  - Read-Only
+  - Custom
+
+== NETWORK ISOLATION ==
+- Managed by Network Provider
+  - Selected during the provisioning time
+- Canal Network Provider allows
+  - Enabling network isolation
+    - Resources in one project will not be able to see or communicate with resources in other projects
+    - Single-cluster multi-tenancy
+    - Does not apply to the System project or its namespaces
+      - Resources inside System project will have access to everything in order to operate correctly
+
+== PROJECT RESOURCE QUOTAS ==
+- Define the total amount of a particular resource a project can use
+- Calculation aggregates all namespaces in the project
+- Keeps a single project from _monopolizing resources_ that are shared across the cluster
+- Allows a default limit for each namespace to be configured
+- Allows a project to define a default container resource limit for CPU & memory
+- The defaults will be applied to any namespace created after the project defaults are set
+
+== DEFAULT PROJECTS ==
+- Clusters contain projects
+- Projects contain namespaces
+- By default, clusters in Rancher get created with two projects
+  - System
+  - Default
+- New projects can be created for user workloads
+- Default projects can be deleted
+- It is possible to move namespaces between projects
+
+== MANAGE ROLES AND USER PERMISSIONS ==
+- By default you have _admin_ user
+- Security -> Users -> Add User
+- Specify _Global Permissions_ (?)
+- Additional _built-in_ roles can also be selected
+
+== AUTHENTICATION ==
+- By default users are local to Rancher
+  - _Local authentication is always enabled (?)_
+- Additional external authentication is possible
+  - Associates an external user to local one
+  - Allows central user management
+  - Multiple providers are available
+
+Configuration is from "Security -> Authentication"
+
+== AUTHENTICATION AND AUTHORIZATION ==
+- Each person _authenticates_ to Rancher as a user by logging in
+  - Grants access to Rancher
+- After logging in, user's _authorization_ is determined
+  - Access rights within the system
+- Authorization is based on:
+  - Global permissions (any cluster)
+  - Clusters and project based on assigned roles on top of k8s RBAC
+
+== GROUP MANAGEMENT ==
+Available for _External Authentication_
+- Ability ot log in and access resources is determined on users and groups
+- Local authentication does not support group management capabilities
+
+== ROLE MANAGEMENT ==
+Security -> Roles
+New roles can be added but there are multiple available roles
+
+== UNDERSTANDING TEMPLATES ==
+== CORE FEATURES ==
+- Cluster configuration standardization
+  - Ensures Rancher-provisioned clusters will follow the best practices
+  - Prevents less technical users from making not-allowed choices
+  - Ability for certain tailoring during the provisioning by enabling to override the default values
+- Ability to share different templates with sets of users and groups
+- Delegation of the ownership of templates to trusted users
+- Control on who can create templates
+- Ability to require users to create clusters from a template
+
+== RKE TEMPLATES ==
+- RKE templates
+  - Help IT and DevOps teams to secure, standardize, and simplify k8s cluster creation
+  - Ease populating and managing large number of smaller k8s clusters
+  - Guarantees the clusters are provisioned in uniform and consistent way
+- With templates some of the cluster options can specifically be set or allowed for a change (k8s version, network provisioner)
+- Multiple templates are allowed
+
+== NODE TEMPLATES ==
+- Used for infrastructure node deployments in the cloud
+  - Configure the node deployment settings specific for a provider
+  - Guarantees standard config
+  - Easy and quick to use
+- Two ways to create
+  - Avatar menu
+  - During the cluster creation
+
+= WEEK 4 =
+== CLUSTER EXPLORER IDEOLOGY ==
+- The new "Rancher UI"
+- Views and management tasks are _more detailed_ within a cluster
+
+== MANAGE CLUSTERS ==
+- Two ways to go to "Cluster Explorer"
+  - Inside the cluster list there is an "Explorer" button
+  - Next to your avatar there is a button
+
+== WORKLOADS ==
+- Apps can be deployed to cluster nodes as workloads
+- Workload is a k8s object that contains:
+  - Pods that run the app
+  - Metadata that sets rules for the deployment's behavior
+- Deployed from a container image
+- Workloads can be upgraded
+  - New versions displayed on the installed apps list
+
+== ACCESSING A WORKLOAD ==
+- After deploying an app, it's _only accessible inside the cluster_
+  - If can't be reacher *externally*
+    - ClusterIP vs NodePort/LoadBalancer
+- External production-level access requires a load balancer
+- Load balancers create  gateway for external connections
+- Accessible with:
+  - IP address of the load balancer
+  - Port assigned for the app
+
+== CREATING WORKLOADS ==
+Cluster Explorer -> Workload -> Overwise -> Create
+K8s type for the workload must be selected, e.g. _Deployment_
+
+DaemonSet -> _ephemeral_ any data will be lost after a restart
+StatefulSet -> database etc. these are not _ephemeral_
+
+- Namespace, Name, and Container Image must be selected or entered
+- Always use a specific tag for the image, not the latest (?)
+  - You want control over the image
+
+== APPS AND MARKETPLACE ==
+== APPLICATION DEPLOYMENT IN K8S ==
+- Objects in k8s can be deployes using _YAML manifest files_
+  - Deploying simple objects is easy
+- Apps typically are a complex collection of _YAML manifest files_
+  - A utility for ease of management is required
+- Helm is the tool of choice for k8s
+
+== HELM ==
+- k8s package manager
+  - "one click" deployment for apps and services
+- Helm provides configurable deployments instead of using static files
+- Helm uses charts:
+  - Charts provide templating syntax for k8s YAML manifest docs
+  - Charts contain the full config for an app to be deployed
+  - System-specific, variable info can be added to the settings in the chart
+  - Info in a chart can be customized, if required
+  - Rancher itself is installed and upgraded using a Helm chart
+
+== REPOSITORIES ==
+- Repositories are specific to a cluster (?)
+
+Explorer -> Main Menu -> Apps & Marketplace -> Chart Repositories -> Create button
+
+== INSTALL APLICATIONS WITH HELM ==
+- "One-click" Install
+  - Many times no extra config is necessary
+
+= WEEK 5 =
+== RANCHER LOGGING ==
+- Logging allows the admin to:
+  - Capture and analyze _the state of the cluster_
+  - Save the logs to a safe location
+  - Stay informed of events like a container crashing, a pod eviction, or a node dying
+  - More easily debug and troubleshoot problems
+
+== NOTIFIERS AND ALERTS ==
+- Notifiers are services that inform about alert events
+  - Configures where to send
+  - Configured at cluster level
+- Alerts are rules that trigger notifications
+  - Notifiers must be already configured to handle the alerts
+
+Cluster Explorer -> Apps & Marketplace -> Logging -> Install
+
+== LOGGING ARCHITECTURE ==
+- Uses Banzai Cloud logging operator
+- Provides fine-grained logging for admins and users
+- Ability to write logs to _multiple outputs_
+- Lots of config options
+- Log filtering
+
+Logging Menu Item -> Helm adds a new option under Cluster Explorer main view
+
+== DEPLOY MONITORING STACK ==
+- The stack consists of Prometheus / Grafana / Alertmanager
+- Prometheus allows the admin to:
+  - Monitor the state and processes of the cluster nodes, k8s components and software deployments
+  - Collect precomputed time series based on metrics
+  - Define alerts based on the collected metrics
+- Grafana allows the admin to:
+  - See the current state or collected metrics as graphical representation
+  - Create custom dashboards to suit the needs
+
+To enable: Apps & Marketplace -> "Monitoring" -> Deploy
+! By default, data is stored _locally in the cluster_ which means that persistent storage is NOT configured by default
+
+! This seems to be important for our purposes
+
+== MANAGE CIS SCANS ==
+CIS -> Center for Internet Security a non-profit org.
+Mission: identify, develop, validate, promote, and sustain best practice solutions for cyber defense
+
+Apps & Marketplace -> CIS Benchmark -> Deploy
+
+There are two types of RKE cluster scan profiles:
+- Permissive
+- Hardened
+
+= WEEK 6 =
+== ACCESS THE CLUSTER NODES WITH SSH ==
+- Depends on how the cluster was deployed/provisioned
+  - Registered Clusters
+    - Uses the existing SSH config
+  - Rancher provisioned clusters
+    - Rancher allows containerized "shell access" from the UI
+  - Infrastructure provider hosted clusters
+    - Allows SSh keys to be downloaded from Rancher UI
+    - With Rancher CLI using "rancher ssh sub-command"
+  - Cloud provisioned clusters
+    - Must configure SSH keys at the time of the provisioning
+
+== DOWNLOAD SSH KEYS ==
+- For nodes residing at infrastructure provider
+  - Select _Nodes_ for a cluster from the main menu
+  - Find the node to create a remote connection for
+  - Select triple dots -> Download Keys
+  - Extract the archive -> ssh -i id_rsa root@<IP_OF_HOST>
+
+== CONTAINER SSH ACCESS ==
+- Containers can be accessed from Rancher
+  - Triple Dots -> _Execute Shell_
+- Used for troubleshooting (reading logs/checking the config)
+- Do not change anything
+  - Containers are _ephemeral_
+
+== ACCESS A DOWNSTREAM CLUSTER ==
+kubectl Shell from Rancher
+Global cluster view -> Launch kubectl
+Global cluster view -> Download kubeconfig file
+
+== RANCHER AUTHENTICATION PROXY ==
+- Access with Rancher UI and kubectl happens via RAP
+- No access available, if Rancher server is down or in-accessible
+- Possible latency in access, if the target cluster and RAP are geographically distant from each other
+- Authorized Cluster Endpoint allows access to K8s API without routing the requests through RAP
+
+== AUTHORIZED CLUSTER ENDPOINTS ==
+- ACE is enabled by default for RKE clusters
+- Only available for Rancher-launched k8s clusters
+- Edit the cluster to enable/disable
+- Enabling ACE creates a context
+
+Cluster Manager -> Edit -> Authorized Endpoint
+
+== RANCHER CLI ==
+- The CLI is a binary file to
+  - Interact directly with clusters from command line
+  - Pass _kubectl_ commands to the clusters
+- Downloadable from the bottom right corner of Rancher UI
+
+= WEEK 7 =
+== BACKUP AND RESTORE WITH RANCHER ==
+== BACKING UP WITH RANCHER ==
+- Backups are required for
+  - Rancher-deployed downstream RKE clusters
+  - Rancher server itself
+- Rancher-deployed RKE clusters have an in-place snapshot utility available
+- Rancher has a separate backup utility Rancher backups
+  - Installed with Helm chart on the Rancher cluster
+  - Backups are run from the Rancher Cluster Explorer
+
+== CREATE DOWNSTREAM CLUSTER SNAPSHOTS ==
+- Rancher snapshot backs up etcd, k8s version, and the cluster config
+- Snapshots can be
+  - Recurring
+  - Manual
+
+== SNAPSHOT FILE LOCATION ==
+- Local on the control plane node (default)
+- S3 Bucket
+- Location is configured at registration/provisioning time
+
+== SNAPSHOT BASICS ==
+- Manual snapshots are easy to run from the Rancher UI
+- Recurring etcd snapshots for all prod. clusters are _recommended_
+- Always create a snapshot before making significant changes to the cluster, such as upgrading the k8s version on it
+- Rancher snapshot includes
+  - Cluster data in etcd
+  - k8s version
+  - Cluster config in the form of the cluster.yml
+
+== SNAPSHOT CREATION ==
+Cluster actions menu -> Snapshot Now
+
+== SNAPSHOT FILES ==
+- Rancher automatically names the snapshot files
+- Naming is based on type
+  - Recurring or manual
+  - Naming conventions
+    - m manual
+    - r recurring
+    - l local
+    - s s3
+
+== UPGRADING DOWNSTREAM CLUSTERS ==
+Global view -> _Edit_ the cluster -> K8s Version dropdown list -> Select the version to upgrade to
+
+== ZERO DOWNTIME UPGRADE ==
+- Rancher cluster upgrade starts
+- Zero downtime
+  - K8s API is available during the entire process
+  - CI/CD workflows are enabled to function throughout the upgrade
+  - Nodes will be cordoned (and drained) before upgrading
+  - Users workloads keep serving traffic without interruption by rolling updates
+  - Nodes will be masked as upgraded only after all components have started
+
+Upgrade Process:
+Phase 1 -> etcd
+Phase 2 -> control nodes
+Phase 3 -> etcd
+Phase 4 -> worker nodes and addons
+
+== UPGRADE PROBLEMS ==
+- Upgrade will not proceed if the number of unavailable nodes exceeds the configured maximum
+- If an upgrade stops, unavailable node needs to be fixed or removed from the cluster before the upgrade can continue
+- Reasons for node upgrade failures
+  - Node is powered off
+  - Node is unavailable
+  - User draining a node while upgrade is in process
+  - The upgrade itself fails
+
+== RESTORE DOWNSTREAM CLUSTERS ==
+Before starting, _backup the cluster!_
+Cluster actions menu -> _Restore snapshot_
+Available snapshots -> Restoration Type
+- etcd
+- etcd and k8s version
+- etcd, k8s version and cluster config
+
+== RESTORE PROCESS ==
+Cluster details page displays process info
+- Snapshot is retrieved from s3 or local
+- Snapshot is unzipped
+- One of the etcd nodes in the cluster serves the snapshot file to the others
+- The other etcd nodes download the snapshot and validate the checksum
+- The cluster is restored and post-restore actions will be done in the cluster
+
+== BACKUP AND RESTORE THE RANCHER SERVER ==
+Rancher Server backups are managed by _Helm_ deployed *Rancher Backups* application
+- Backup and restore are run from _Cluster Explorer_
+
+
