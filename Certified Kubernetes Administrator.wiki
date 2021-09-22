@@ -218,7 +218,7 @@ LINK -> https://kubernetes.io/docs/reference/generated/kubectl/kubectl-commands
 - "kubectl label nodes <NODE_NAME> <LABEL_KEY>=<LABEL_VAL>"
 - _CANNOT_ handle complex requirements
 
-# NODE AFFINITY
+=== NODE AFFINITY ===
 - _ENSURE_ that _pods are hosted on particular nodes_
 - under the spec:
   - affinity:
